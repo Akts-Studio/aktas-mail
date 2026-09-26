@@ -6,6 +6,12 @@ import { Avatar } from "./Avatar.js";
 import { QuickReplies } from "./QuickReplies.js";
 import type { SenderAvatar } from "../lib/api.js";
 
+function boyut(bayt: number): string {
+  if (bayt < 1024) return `${bayt} B`;
+  if (bayt < 1024 * 1024) return `${Math.round(bayt / 1024)} KB`;
+  return `${(bayt / 1024 / 1024).toLocaleString("tr-TR", { maximumFractionDigits: 1 })} MB`;
+}
+
 /**
  * Mail gövdesi ASLA doğrudan sayfaya basılmaz.
  *
@@ -371,12 +377,33 @@ export function MessageView({
             <b>{from?.name || from?.address || "(bilinmiyor)"}</b>
             {from?.name && <span>{from.address}</span>}
           </div>
-          <time>{msg.date ? new Date(msg.date).toLocaleString("tr-TR") : ""}</time>
+          <time>
+            {msg.date
+              ? new Date(msg.date).toLocaleString("tr-TR", { dateStyle: "medium", timeStyle: "short" })
+              : ""}
+          </time>
         </div>
         {msg.to.length > 0 && (
           <div className="reader-to">
             Kime: {msg.to.map((a) => a.address).join(", ")}
           </div>
+        )}
+        {/* Ekler arka uçtan geliyordu ama hiç gösterilmiyordu; varlıkları
+            yalnızca listedeki ataştan anlaşılıyordu. İndirme ucu henüz yok. */}
+        {msg.attachments.length > 0 && (
+          <ul className="ekler" aria-label="Ekler">
+            {msg.attachments.map((a, i) => (
+              <li key={i} className="ek" title={a.contentType}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+                     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <path d="M14 2v6h6" />
+                </svg>
+                <span className="ek-ad">{a.filename}</span>
+                <span className="ek-boyut">{boyut(a.size)}</span>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 

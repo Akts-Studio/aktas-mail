@@ -8,14 +8,38 @@ import { Compose, type Draft } from "./Compose.js";
 import { Logo } from "./Logo.js";
 import { Settings } from "./Settings.js";
 
+/**
+ * Klasör simgeleri — tek çizgi kalınlığında SVG. Önceden ▤ ➤ ✎ gibi
+ * karakterlerdi; her biri farklı boyutta çıkıyor, 🗑 ise renkli emoji
+ * olarak diğerlerinden kopuyordu.
+ */
+const IKON_YOLLARI: Record<string, string[]> = {
+  gelen: ["M22 12h-6l-2 3h-4l-2-3H2", "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"],
+  giden: ["M22 2 11 13", "M22 2 15 22l-4-9-9-4 20-7z"],
+  taslak: ["M12 20h9", "M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"],
+  spam: ["M12 9v4", "M12 17h.01", "M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"],
+  cop: ["M3 6h18", "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6", "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", "M10 11v6", "M14 11v6"],
+  arsiv: ["M21 8v13H3V8", "M1 3h22v5H1z", "M10 12h4"],
+  klasor: ["M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"],
+};
+
+function Ikon({ tur, className }: { tur: string; className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {(IKON_YOLLARI[tur] ?? IKON_YOLLARI["klasor"]!).map((d) => <path key={d} d={d} />)}
+    </svg>
+  );
+}
+
 /** IMAP özel klasörlerini Türkçe adlara ve sıraya çevir. */
 const KLASOR: Record<string, { ad: string; ikon: string; sira: number }> = {
-  "\\Inbox": { ad: "Gelen Kutusu", ikon: "▤", sira: 0 },
-  "\\Sent": { ad: "Gönderilenler", ikon: "➤", sira: 1 },
-  "\\Drafts": { ad: "Taslaklar", ikon: "✎", sira: 2 },
-  "\\Junk": { ad: "Spam", ikon: "⚠", sira: 3 },
-  "\\Trash": { ad: "Çöp", ikon: "🗑", sira: 4 },
-  "\\Archive": { ad: "Arşiv", ikon: "▣", sira: 5 },
+  "\\Inbox": { ad: "Gelen Kutusu", ikon: "gelen", sira: 0 },
+  "\\Sent": { ad: "Gönderilenler", ikon: "giden", sira: 1 },
+  "\\Drafts": { ad: "Taslaklar", ikon: "taslak", sira: 2 },
+  "\\Junk": { ad: "Spam", ikon: "spam", sira: 3 },
+  "\\Trash": { ad: "Çöp", ikon: "cop", sira: 4 },
+  "\\Archive": { ad: "Arşiv", ikon: "arsiv", sira: 5 },
 };
 
 /** Gelen Kutusu her zaman en üstte; sonra bilinen özel klasörler, sonra gerisi. */
@@ -31,8 +55,8 @@ function kutuAdi(b: Mailbox): string {
 }
 
 function kutuIkon(b: Mailbox): string {
-  if (b.path.toUpperCase() === "INBOX") return "▤";
-  return (b.specialUse && KLASOR[b.specialUse]?.ikon) || "▸";
+  if (b.path.toUpperCase() === "INBOX") return "gelen";
+  return (b.specialUse && KLASOR[b.specialUse]?.ikon) || "klasor";
 }
 
 function tarih(iso: string | null): string {
@@ -569,7 +593,7 @@ export function Mail({
                 setMenuAcik(false); // telefonda seçim sonrası çekmece kapansın
               }}
             >
-              <span className="folder-ico">{kutuIkon(b)}</span>
+              <Ikon tur={kutuIkon(b)} className="folder-ico" />
               <span className="folder-name">{kutuAdi(b)}</span>
               {/* Okunmamış sayısı — Gmail'de olduğu gibi klasör adı da kalınlaşır */}
               {/* key: sayı değişince rozet yeniden "zıplasın" */}
@@ -670,10 +694,12 @@ export function Mail({
             <input
               id="ara"
               className="search"
-              placeholder="Postada ara  ( / )"
+              placeholder="Postada ara"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
+            {/* Klavye kısayolu ipucu — telefonda gizli (CSS) */}
+            {!query && <kbd className="search-kisayol">/</kbd>}
           </label>
           {query && (
             <button className="icon-btn" onClick={() => setQuery("")} title="Aramayı temizle">
@@ -899,7 +925,12 @@ export function Mail({
                     </span>
                   )}
                   {m.flagged && <span className="row-star">★</span>}
-                  {m.hasAttachments && <span className="row-clip">📎</span>}
+                  {m.hasAttachments && (
+                    <svg className="row-clip" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="Ekli">
+                      <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                    </svg>
+                  )}
                   <time className="row-date">{tarih(m.date)}</time>
                 </div>
                 <div className="row-subject">

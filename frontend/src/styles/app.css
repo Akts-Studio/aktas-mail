@@ -86,7 +86,13 @@
   .login-hero { padding: 40px 24px 32px; gap: 8px; }
   .login-hero h2 { font-size: 28px; margin-top: 8px; }
   .login-hero ul { display: none; }
+  /* Mavi bant hemen üstte: form ekranın ortasına itilmesin, logo iki kez görünmesin */
+  .login-side { align-content: start; padding-top: 28px; }
+  .login-kart-logo { display: none; }
+  .login-side .login-card { position: relative; padding: 28px 24px; }
+  .login-card .login-top { position: absolute; top: 14px; right: 14px; }
 }
+.bolunmez { white-space: nowrap; }
 .login-studio {
   display: inline-flex;
   align-items: center;
@@ -322,9 +328,9 @@
   font-weight: 700;
 }
 .folder-ico {
-  width: 16px;
-  text-align: center;
-  font-size: 13px;
+  width: 18px;
+  height: 18px;
+  flex: none;
 }
 .folder-name {
   overflow: hidden;
@@ -602,8 +608,9 @@
   font-size: 12px;
 }
 .row-clip {
-  font-size: 11px;
-  opacity: 0.7;
+  width: 13px;
+  height: 13px;
+  color: var(--dim);
 }
 .row-date {
   font-size: 11.5px;
@@ -737,6 +744,42 @@ kbd {
   margin-top: 8px;
   font-size: 12.5px;
   color: var(--dim);
+}
+.ekler {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.ek {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 7px 12px 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 13px;
+}
+.ek svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--accent);
+}
+.ek-ad {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ek-boyut {
+  flex: none;
+  color: var(--dim);
+  font-size: 12px;
 }
 .banner {
   display: flex;
@@ -2610,6 +2653,7 @@ kbd {
 .reader-giris .reader-head h2 { animation: yukari-kay 0.45s 0.04s var(--ease-cik) backwards; }
 .reader-giris .reader-from { animation: yukari-kay 0.45s 0.1s var(--ease-cik) backwards; }
 .reader-giris .reader-to,
+.reader-giris .ekler,
 .reader-giris .banner { animation: yukari-kay 0.45s 0.14s var(--ease-cik) backwards; }
 .reader-giris .alt-cubuk { animation: yukari-kay 0.45s 0.18s var(--ease-cik) backwards; }
 .reader-giris .reader-body-sarmal { animation: govde-gir 0.55s 0.2s var(--ease-cik) backwards; }
@@ -2789,4 +2833,26 @@ kbd {
 @media (max-width: 760px) {
   .sidebar { transition: transform 0.38s var(--ease-cik); }
   .toast { bottom: max(24px, env(safe-area-inset-bottom)); }
+}
+
+/* Arama kutusundaki "/" kısayolu — yalnız klavyeli geniş ekranda */
+.search-kisayol {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  opacity: 0.7;
+}
+.search-sarmal:focus-within .search-kisayol {
+  opacity: 0;
+}
+
+@media (max-width: 760px) {
+  .search-kisayol {
+    display: none;
+  }
+  /* Son mail "Yaz" düğmesinin arkasında kalmasın */
+  .rows,
+  :root[data-bg] .rows {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
 }

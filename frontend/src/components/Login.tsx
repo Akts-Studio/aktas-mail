@@ -117,7 +117,7 @@ export function Login({ onDone, onCancel }: { onDone: () => void; onCancel?: () 
       <aside className="login-hero" aria-hidden={!!onCancel}>
         <Logo size={56} />
         <h2>akts.tr posta kutun</h2>
-        <p>Kendi sunucusunda çalışan, sade bir e-posta.</p>
+        <p>Kendi sunucusunda çalışan, sade bir <span className="bolunmez">e-posta</span>.</p>
         <ul>
           <li><b>Passkey ile giriş</b><span>Parola yok; parmak izi ya da yüz tanıma yeter.</span></li>
           <li><b>Kendi sunucusunda</b><span>Postfix ve Dovecot, üçüncü parti yok.</span></li>
@@ -128,7 +128,7 @@ export function Login({ onDone, onCancel }: { onDone: () => void; onCancel?: () 
       <div className="login-side">
       <div className="login-card">
         <div className="login-top">
-          <Logo size={44} />
+          <Logo size={44} className="login-kart-logo" />
           <ThemeToggle />
         </div>
         <h1>{onCancel ? "Hesap ekle" : "Aktaş Mail"}</h1>
