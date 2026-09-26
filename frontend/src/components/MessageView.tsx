@@ -102,7 +102,13 @@ export function MessageView({
    */
   const srcDoc = useMemo(() => {
     if (!msg) return "";
-    const koyu = theme === "dark";
+    /**
+     * Kendi tasarımı olan mail (zemin rengi ya da tablo düzeni) koyu
+     * temada bile beyaz zeminde: tasarımcı beyaza göre renk seçmiş,
+     * koyu zemine alınca yazılar kayboluyordu. Gmail de böyle yapıyor.
+     */
+    const tasarimli = /bgcolor=|background(-color)?\s*:|<table/i.test(msg.html);
+    const koyu = theme === "dark" && !tasarimli;
     // Gmail paletinin aynı değerleri — iframe içeriden var(--...) göremez
     const fg = koyu ? "#e3e3e3" : "#1f1f1f";
     const bg = koyu ? "#1f1f1f" : "#ffffff";
@@ -143,9 +149,12 @@ export function MessageView({
        color:${fg};word-wrap:break-word;overflow-wrap:break-word}
   /* Asıl mail kutusu — yüksekliği İÇERİĞE göre */
   .am-govde{background:${bg};color:${fg};padding:16px 24px;border-radius:16px}
+  /* Tasarımlı mail Gmail'deki gibi çerçevesiz, kenardan kenara */
+  .am-govde.am-tasarimli{padding:0;border-radius:0;background:#ffffff}
   img{max-width:100%;height:auto}
   a{color:${link}}
-  table{max-width:100%;border-collapse:collapse}
+  /* Tabloya border-collapse vermiyoruz: mailin kendi aralıklarını bozuyordu */
+  table{max-width:100%}
   pre{white-space:pre-wrap;overflow-x:auto}
   /*
     DAR EKRAN UYUMU — yatay kaydırmayı bitirir.
@@ -167,11 +176,12 @@ export function MessageView({
     table,td,th{width:auto !important;max-width:100% !important}
     table{table-layout:auto !important}
     img{height:auto !important}
-    .am-govde{padding:12px 14px;border-radius:12px}
+    .am-govde:not(.am-tasarimli){padding:12px 14px;border-radius:12px}
     body{overflow-wrap:anywhere}
   }
-  blockquote{margin:0 0 0 12px;padding-left:12px;border-left:2px solid ${cizgi};color:${soluk}}
-</style></head><body><div class="am-govde">${msg.html}</div></body></html>`;
+  /* Yalnız stilsiz alıntılar; mailin kendi (ör. Gmail) alıntı stili ezilmesin */
+  blockquote:not([style]){margin:0 0 0 12px;padding-left:12px;border-left:2px solid ${cizgi};color:${soluk}}
+</style></head><body><div class="am-govde${tasarimli ? " am-tasarimli" : ""}">${msg.html}</div></body></html>`;
   }, [msg, showImages, theme]);
 
   // Avatar mesajdan AYRI çekiliyor: DNS + HTTP araması mailin

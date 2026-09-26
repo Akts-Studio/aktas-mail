@@ -29,6 +29,62 @@ function isSafeHref(href: string): boolean {
   return /^(https?|mailto|tel):/i.test(href.trim());
 }
 
+/**
+ * Mail tasarımlarının dayandığı düzen stilleri. Önceden yalnız renk, yazı
+ * ve padding/margin geçiyordu; genişlik, kenarlık, köşe, arka plan ve
+ * display silindiği için pazarlama mailleri dağılıyor, gizli önizleme
+ * metinleri görünüyor, düğmeler düz yazıya dönüyordu. Gmail bunların
+ * hepsini geçiriyor.
+ *
+ * Değer süzgeci: url(), expression(), javascript:, @import ve CSS'ten
+ * çıkmaya yarayan karakterler yasak. Arka plan görselleri ayrı: yalnız
+ * https/cid/data:image. Yüklenip yüklenmediğine yine iframe'in CSP'si
+ * karar veriyor (görseller kapalıyken img-src yalnız data:).
+ */
+const DEGER = /^(?![\s\S]*(url\s*\(|expression|javascript:|vbscript:|behavior|binding|@import))[^;{}<>\\]+$/i;
+const GORSELLI = /^(?![\s\S]*(expression|javascript:|vbscript:|behavior|binding|@import))(?:[^;{}<>\\()]|url\(\s*['"]?(?:https:|cid:|data:image\/)[^'")\s]*['"]?\s*\)|\([^()]*\))+$/i;
+
+const SERBEST_STILLER = [
+  "color", "background-color", "opacity",
+  "font", "font-family", "font-size", "font-weight", "font-style", "font-variant",
+  "line-height", "letter-spacing", "word-spacing", "text-align", "text-decoration",
+  "text-decoration-color", "text-transform", "text-indent", "text-shadow", "white-space",
+  "word-break", "word-wrap", "overflow-wrap", "vertical-align", "direction",
+  "display", "visibility", "overflow", "overflow-x", "overflow-y", "box-sizing", "float", "clear",
+  "width", "min-width", "max-width", "height", "min-height", "max-height",
+  "margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
+  "padding", "padding-top", "padding-right", "padding-bottom", "padding-left",
+  "border", "border-top", "border-right", "border-bottom", "border-left",
+  "border-width", "border-style", "border-color", "border-radius",
+  "border-top-left-radius", "border-top-right-radius", "border-bottom-left-radius", "border-bottom-right-radius",
+  "border-top-color", "border-bottom-color", "border-left-color", "border-right-color",
+  "border-top-width", "border-bottom-width", "border-left-width", "border-right-width",
+  "border-top-style", "border-bottom-style", "border-left-style", "border-right-style",
+  "border-collapse", "border-spacing", "table-layout", "list-style", "list-style-type",
+  "outline", "box-shadow", "object-fit", "background-size", "background-position",
+  "background-repeat", "mso-hide", "gap",
+];
+
+const STIL_KURALLARI: Record<string, RegExp[]> = Object.fromEntries([
+  ...SERBEST_STILLER.map((ad) => [ad, [DEGER]]),
+  ["background", [GORSELLI]],
+  ["background-image", [GORSELLI]],
+]);
+
+/**
+ * <style> bloğunun içi. Mail yalıtılmış çerçevede açılıyor, yani bu CSS
+ * yalnız mailin kendisini etkiliyor; yine de dış kaynak yükleyen ve
+ * bindirme yapan her şey çıkarılıyor.
+ */
+function stilBlogunuTemizle(css: string): string {
+  return css
+    .replace(/@import[^;]*;?/gi, "")
+    .replace(/@font-face\s*\{[^}]*\}/gi, "")
+    .replace(/url\(\s*['"]?(?!https:|cid:|data:image\/)[^)]*\)/gi, "none")
+    .replace(/expression\s*\(|javascript:|vbscript:|behavior\s*:|-moz-binding/gi, "")
+    .replace(/(position|z-index)\s*:[^;}]*/gi, "");
+}
+
 export function sanitizeEmailHtml(
   dirty: string,
   opts: { allowRemoteImages?: boolean } = {},
@@ -46,19 +102,24 @@ export function sanitizeEmailHtml(
       "ul", "ol", "li", "dl", "dt", "dd",
       "blockquote", "pre", "code",
       "table", "thead", "tbody", "tfoot", "tr", "td", "th", "caption",
-      "a", "img",
-      // script, iframe, form, object, embed, style, link, base BİLEREK YOK
+      "a", "img", "center", "font", "style",
+      // script, iframe, form, object, embed, link, base BİLEREK YOK.
+      // <style> var: içi aşağıda stilBlogunuTemizle'den geçiyor.
     ],
+    allowVulnerableTags: true,
 
     // DİKKAT: transformTags'in eklediği öznitelikler de burada izinli olmalı —
     // filtre transform'dan SONRA çalışıyor, aksi halde rel/noopener sessizce düşer.
+    // Tablo düzenli maillerin eski öznitelikleri (bgcolor, align, width…)
     allowedAttributes: {
       a: ["href", "title", "rel", "target", "data-external-href"],
-      img: ["src", "alt", "title", "width", "height", "data-blocked-src"],
-      td: ["colspan", "rowspan", "align", "valign"],
-      th: ["colspan", "rowspan", "align", "valign"],
-      table: ["width", "border", "cellpadding", "cellspacing"],
-      "*": ["style"], // aşağıda allowedStyles ile dar tutuluyor
+      img: ["src", "alt", "title", "width", "height", "border", "align", "data-blocked-src"],
+      td: ["colspan", "rowspan", "align", "valign", "width", "height", "bgcolor", "nowrap"],
+      th: ["colspan", "rowspan", "align", "valign", "width", "height", "bgcolor", "nowrap"],
+      tr: ["align", "valign", "bgcolor", "height"],
+      table: ["width", "height", "border", "cellpadding", "cellspacing", "align", "bgcolor", "role"],
+      font: ["color", "size", "face"],
+      "*": ["style", "class", "dir", "align", "lang"], // style aşağıda allowedStyles ile süzülüyor
     },
 
     // javascript:, data: (görsel hariç), vbscript: hepsi eler
@@ -67,21 +128,8 @@ export function sanitizeEmailHtml(
     allowProtocolRelative: false,
 
     // Sadece görünüm etkileyen, davranış değiştirmeyen özellikler
-    allowedStyles: {
-      "*": {
-        color: [/^#[0-9a-f]{3,8}$/i, /^rgba?\(/i, /^[a-z-]+$/i],
-        "background-color": [/^#[0-9a-f]{3,8}$/i, /^rgba?\(/i, /^[a-z-]+$/i],
-        "text-align": [/^(left|right|center|justify)$/],
-        "font-weight": [/^(normal|bold|[1-9]00)$/],
-        "font-style": [/^(normal|italic)$/],
-        "text-decoration": [/^(none|underline|line-through)$/],
-        "font-size": [/^\d+(\.\d+)?(px|pt|em|rem|%)$/],
-        "font-family": [/^[\w\s,'"-]+$/],
-        padding: [/^[\d\s.]+(px|pt|em|rem|%)?$/],
-        margin: [/^[\d\s.]+(px|pt|em|rem|%)?$/],
-        // position/z-index/transform yok: sayfa üstüne bindirme (clickjacking) engeli
-      },
-    },
+    // position/z-index/transform listede YOK: sayfa üstüne bindirme engeli
+    allowedStyles: { "*": STIL_KURALLARI },
 
     transformTags: {
       a: (tagName, attribs) => {
@@ -127,7 +175,11 @@ export function sanitizeEmailHtml(
     enforceHtmlBoundary: true,
   });
 
-  return { html, blockedImages, externalLinks };
+  return {
+    html: html.replace(/(<style[^>]*>)([\s\S]*?)(<\/style>)/gi, (_t, a, css, b) => a + stilBlogunuTemizle(css) + b),
+    blockedImages,
+    externalLinks,
+  };
 }
 
 /**

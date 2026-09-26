@@ -78,7 +78,33 @@ console.log("\nGelen mail HTML'i — saldırı testleri\n");
 // 9) style/link etiketiyle CSS enjeksiyonu
 {
   const out = sanitizeEmailHtml(`<style>body{display:none}</style><link rel="stylesheet" href="//kotu.site/a.css">`);
-  check("<style> ve <link> atılıyor", !/(<style|<link|kotu\.site)/i.test(out.html), out.html);
+  check("<link> atılıyor", !/(<link|kotu\.site)/i.test(out.html), out.html);
+}
+
+// 9b) <style> kalıyor ama dış kaynak ve bindirme temizleniyor
+{
+  const out = sanitizeEmailHtml(`<style>@import url(https://kotu.site/a.css);.x{background:url(http://takip.site/p.gif);position:fixed;z-index:9;color:red}.y{width:expression(alert(1))}</style><p class="x">a</p>`);
+  check("<style> içinde @import yok", !/@import|kotu\.site/i.test(out.html), out.html);
+  check("<style> içinde http url() yok", !/takip\.site/i.test(out.html), out.html);
+  check("<style> içinde position/z-index yok", !/position|z-index/i.test(out.html), out.html);
+  check("<style> içinde expression yok", !/expression/i.test(out.html), out.html);
+  check("zararsız kural ve class kalıyor", /color:red/.test(out.html) && /class="x"/.test(out.html), out.html);
+}
+
+// 9c) Mail tasarımı için gereken düzen stilleri kalıyor, url()/expression süzülüyor
+{
+  const out = sanitizeEmailHtml(
+    `<div style="display:none;max-height:0">gizli</div>` +
+    `<a style="background-color:#2bb3ff;border-radius:8px;padding:12px 20px;display:inline-block" href="https://a.b">Al</a>` +
+    `<td bgcolor="#ffffff" align="center" width="600" style="width:600px;border:1px solid #ddd;background:url(javascript:alert(1))">x</td>` +
+    `<div style="background-image:url(https://ornek.site/a.png);width:expression(alert(1))">y</div>`,
+  );
+  check("display:none korunuyor (gizli önizleme metni)", /display:none/.test(out.html), out.html);
+  check("düğme stili korunuyor", /border-radius:8px/.test(out.html) && /background-color:#2bb3ff/.test(out.html), out.html);
+  check("bgcolor/align/width korunuyor", /bgcolor="#ffffff"/.test(out.html) && /width="600"/.test(out.html), out.html);
+  check("javascript: url'li background atılıyor", !/javascript/i.test(out.html), out.html);
+  check("https arka plan görseli kalıyor", /background-image:url\(https:\/\/ornek\.site/.test(out.html), out.html);
+  check("expression atılıyor", !/expression/i.test(out.html), out.html);
 }
 
 // 10) data: URL ile script
