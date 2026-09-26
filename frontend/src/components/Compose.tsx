@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api, ApiError } from "../lib/api.js";
+import { MailOnizleme } from "./MailOnizleme.js";
 
 export interface Draft {
   to: string;
@@ -25,6 +26,8 @@ export function Compose({
   const [text, setText] = useState(draft.text);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Alıcının göreceği hâl; null = düzenleme kipi. */
+  const [onizleme, setOnizleme] = useState<{ html: string; gonderen: string; email: string } | null>(null);
   /** Kapanış animasyonu oynarken true; bitince asıl `onClose` çağrılıyor. */
   const [kapaniyor, setKapaniyor] = useState(false);
 
@@ -41,6 +44,15 @@ export function Compose({
       .split(/[,;]/)
       .map((x) => x.trim())
       .filter(Boolean);
+  }
+
+  async function onizlemeAc() {
+    setError(null);
+    try {
+      setOnizleme(await api.preview(text));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Önizleme alınamadı");
+    }
   }
 
   async function gonder(e: React.FormEvent) {
@@ -126,12 +138,18 @@ export function Compose({
           />
         </label>
 
-        <textarea
-          className="compose-body"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Mesajını yaz…"
-        />
+        {onizleme ? (
+          <div className="compose-onizleme">
+            <MailOnizleme html={onizleme.html} gonderen={onizleme.gonderen} email={onizleme.email} />
+          </div>
+        ) : (
+          <textarea
+            className="compose-body"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Mesajını yaz… İmzan gönderirken altına eklenir."
+          />
+        )}
 
         {error && <p className="compose-error">{error}</p>}
 
@@ -142,6 +160,13 @@ export function Compose({
               <path d="M22 2L11 13" />
               <path d="M22 2l-7 20-4-9-9-4 20-7z" />
             </svg>
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => (onizleme ? setOnizleme(null) : void onizlemeAc())}
+          >
+            {onizleme ? "Düzenle" : "Önizle"}
           </button>
           <button type="button" className="btn-link" onClick={kapat}>
             Vazgeç

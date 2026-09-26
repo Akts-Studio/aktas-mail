@@ -16,9 +16,11 @@ import {
   ozetleriGetir,
 } from "../mail/imap.js";
 import { db } from "../db/index.js";
-import { spamLabels } from "../db/schema.js";
+import { spamLabels, users } from "../db/schema.js";
+import { eq } from "drizzle-orm";
 import { spamSkorla } from "../mail/spam.js";
 import { sendMail } from "../mail/send.js";
+import { mailOlustur, gonderenAdi, imzaSemasi, type Imza } from "../mail/sablon.js";
 import { audit } from "../lib/audit.js";
 import { avatarlariGetir } from "../mail/avatar-cache.js";
 import { SESSION_COOKIE } from "./auth.js";
@@ -66,6 +68,14 @@ async function topluEtiketle(
 }
 
 /** Oturumu çözer; yoksa 401. Her posta rotasının ilk adımı. */
+/** Kullanıcının kayıtlı imzası (settings.imza); bozuksa yok sayılır. */
+async function kayitliImza(userId: number): Promise<Imza | undefined> {
+  const [u] = await db.select({ settings: users.settings }).from(users).where(eq(users.id, userId)).limit(1);
+  const ham = (u?.settings as { imza?: unknown } | null)?.imza;
+  const sonuc = imzaSemasi.safeParse(ham);
+  return sonuc.success ? sonuc.data : undefined;
+}
+
 async function requireSession(req: FastifyRequest, reply: FastifyReply) {
   const cookie = req.cookies[SESSION_COOKIE];
   const unpacked = cookie ? unpackSessionCookie(cookie) : null;
@@ -210,7 +220,6 @@ export async function mailRoutes(app: FastifyInstance): Promise<void> {
           // Satır sonu enjeksiyonu başlık uydurmaya yarar; konuda yasak
           subject: z.string().max(500).regex(/^[^\r\n]*$/, "Konuda satır sonu olamaz"),
           text: z.string().max(1024 * 512),
-          html: z.string().max(1024 * 512).optional(),
           inReplyTo: z.string().max(998).optional(),
           references: z.array(z.string().max(998)).max(50).optional(),
         })
@@ -223,10 +232,16 @@ export async function mailRoutes(app: FastifyInstance): Promise<void> {
       }
 
       try {
+        // HTML'i istemci değil sunucu üretiyor: şablon ve imza tek yerde,
+        // istemciden gelen HTML'e güvenmek gerekmiyor.
+        const imza = await kayitliImza(session.userId);
+        const icerik = mailOlustur(body.data.text, session, imza);
         const result = await sendMail({
           from: session.email,
+          fromName: gonderenAdi(session, imza),
           password: session.imapPassword,
           ...body.data,
+          ...icerik,
         });
 
         await audit({
@@ -249,6 +264,25 @@ export async function mailRoutes(app: FastifyInstance): Promise<void> {
       }
     },
   );
+
+  /**
+   * Önizleme: gönderilecek mailin alıcıda nasıl görüneceği. `imza`
+   * verilirse kayıtlı olan yerine o kullanılıyor — Ayarlar'da kaydetmeden
+   * önce denemek için.
+   */
+  app.post("/api/messages/preview", async (req, reply) => {
+    const session = await requireSession(req, reply);
+    if (!session) return;
+
+    const body = z
+      .object({ text: z.string().max(1024 * 512), imza: imzaSemasi.optional() })
+      .safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: "Geçersiz istek" });
+
+    const imza = body.data.imza ?? (await kayitliImza(session.userId));
+    const { html } = mailOlustur(body.data.text, session, imza);
+    return reply.send({ html, gonderen: gonderenAdi(session, imza), email: session.email });
+  });
 
   app.post("/api/messages/:uid/flags", async (req, reply) => {
     const session = await requireSession(req, reply);

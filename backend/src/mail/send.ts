@@ -16,6 +16,8 @@ import { env } from "../env.js";
 
 export interface SendParams {
   from: string;
+  /** From başlığındaki görünen ad; yoksa yalnızca adres gider */
+  fromName?: string;
   password: string;
   to: string[];
   cc?: string[];
@@ -56,7 +58,7 @@ export async function sendMail(params: SendParams): Promise<SendResult> {
    * gönderilenle birebir aynı olmazdı.
    */
   const composer = new MailComposer({
-    from: params.from,
+    from: params.fromName ? { name: params.fromName, address: params.from } : params.from,
     to: params.to,
     ...(params.cc?.length ? { cc: params.cc } : {}),
     ...(params.bcc?.length ? { bcc: params.bcc } : {}),

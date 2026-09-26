@@ -92,6 +92,19 @@ export interface Ayarlar {
   arkaplan?: string;
   desen?: string;
   okumaTemasi?: "auto" | "light" | "dark";
+  imza?: Imza;
+}
+
+/** Giden maillerin altındaki kişisel imza. Biçimi backend/src/mail/sablon.ts belirliyor. */
+export interface Imza {
+  /** false ise imza eklenmez; tanımsız = açık */
+  acik?: boolean;
+  ad?: string;
+  unvan?: string;
+  telefon?: string;
+  web?: string;
+  not?: string;
+  renk?: string;
 }
 
 export interface Profile {
@@ -410,6 +423,13 @@ export const api = {
   pushTest: () => request<{ gonderilen: number; temizlenen: number }>("/api/push/test", { method: "POST" }),
 
   /** Kısmi güncelleme: yalnızca gönderilen alanlar değişir. */
+  /** Alıcının göreceği hâl; `imza` verilirse kayıtlı olanın yerine o kullanılır. */
+  preview: (text: string, imza?: Imza) =>
+    request<{ html: string; gonderen: string; email: string }>("/api/messages/preview", {
+      method: "POST",
+      body: JSON.stringify(imza ? { text, imza } : { text }),
+    }),
+
   saveSettings: (ayarlar: Ayarlar) =>
     request<{ settings: Ayarlar }>("/api/profile/settings", {
       method: "PUT",

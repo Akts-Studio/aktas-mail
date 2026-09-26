@@ -6,8 +6,9 @@ import { ProfilePhoto } from "./ProfilePhoto.js";
 import { Bildirimler } from "./Bildirimler.js";
 import { Appearance } from "./Appearance.js";
 import { SpamEgitim } from "./SpamEgitim.js";
+import { ImzaAyari } from "./ImzaAyari.js";
 
-type Sekme = "profil" | "gorunum" | "bildirim" | "spam" | "passkey" | "kullanicilar";
+type Sekme = "profil" | "imza" | "gorunum" | "bildirim" | "spam" | "passkey" | "kullanicilar";
 type Adim = "liste" | "parola" | "kaydediliyor";
 
 /**
@@ -108,6 +109,14 @@ export function Settings({
           </button>
           <button
             role="tab"
+            aria-selected={sekme === "imza"}
+            className={`sekme ${sekme === "imza" ? "is-active" : ""}`}
+            onClick={() => setSekme("imza")}
+          >
+            İmza
+          </button>
+          <button
+            role="tab"
             aria-selected={sekme === "gorunum"}
             className={`sekme ${sekme === "gorunum" ? "is-active" : ""}`}
             onClick={() => setSekme("gorunum")}
@@ -157,6 +166,13 @@ export function Settings({
             <>
               <h3>Profil fotoğrafı</h3>
               <ProfilePhoto email={email} />
+            </>
+          )}
+
+          {sekme === "imza" && (
+            <>
+              <h3>Mail imzası</h3>
+              <ImzaAyari />
             </>
           )}
 

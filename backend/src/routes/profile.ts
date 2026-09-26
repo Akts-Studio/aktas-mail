@@ -7,6 +7,7 @@ import { unpackSessionCookie } from "../lib/crypto.js";
 import { loadSession } from "../auth/session.js";
 import { audit } from "../lib/audit.js";
 import { SESSION_COOKIE } from "./auth.js";
+import { imzaSemasi } from "../mail/sablon.js";
 
 async function requireSession(req: FastifyRequest, reply: FastifyReply) {
   const cookie = req.cookies[SESSION_COOKIE];
@@ -83,6 +84,8 @@ const ayarSemasi = z.object({
   arkaplan: z.string().max(24).optional(),
   desen: z.string().max(24).optional(),
   okumaTemasi: z.enum(["auto", "light", "dark"]).optional(),
+  /** Giden maillerin altındaki kişisel imza — bkz. mail/sablon.ts */
+  imza: imzaSemasi.optional(),
 });
 
 export async function profileRoutes(app: FastifyInstance): Promise<void> {
