@@ -1,6 +1,6 @@
 # Durum — aktas-mail
 
-Güncelleme: 2026-09-26 21:50 | Son araç: claude
+Güncelleme: 2026-09-26 22:00 | Son araç: claude
 
 ## Hedef
 
@@ -28,6 +28,12 @@ main'e birleştirilmedi.
       üstüne 8a5c7ef: SVG klasör/ataş simgeleri, okuyucuda ek listesi (indirme ucu YOK), telefonda liste
       alt boşluğu ("Yaz" son maili örtüyordu), arama "/" ipucu kbd'ye, mobil girişte tek logo + köşe tema
       düğmesi. Canlıda (yedek `/root/aktas-mail-frontend-yedek-2026-09-26.tgz`).
+
+- [x] **Giden mail + imza (d220591, canlıda):** önceden yalnız düz metin gidiyordu, From'da ad yoktu.
+      `backend/src/mail/sablon.ts` tek kaynak: HTML + düz metin, imza (settings.imza: ad, unvan, telefon,
+      web, not, renk, acik), imza alıntının ÜSTÜNDE. `/api/messages/preview` (imza verilirse kayıtlı yerine).
+      Ayarlar > İmza (canlı önizleme), yazma penceresinde Önizle/Düzenle. Testler `sablon.test.ts` (18).
+      Yedek `/root/aktas-mail-yedek-2026-09-26b.tgz`.
 
 ## Sıradaki adım
 
