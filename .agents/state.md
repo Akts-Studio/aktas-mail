@@ -1,6 +1,6 @@
 # Durum — aktas-mail
 
-Güncelleme: 2026-09-25 08:30 | Son araç: claude
+Güncelleme: 2026-09-26 21:50 | Son araç: claude
 
 ## Hedef
 
@@ -24,8 +24,14 @@ main'e birleştirilmedi.
       bildirim deneme düğmeleri herkese açık.
 - [x] Canlıya çıktı; yedek `/root/aktas-mail-yedek-2026-09-25.tgz`.
 
+- [x] **Arayüz (2026-09-26):** `claude/sweet-goodall-ex1c5q` (animasyonlar) bu dala birleştirildi (2588897);
+      üstüne 8a5c7ef: SVG klasör/ataş simgeleri, okuyucuda ek listesi (indirme ucu YOK), telefonda liste
+      alt boşluğu ("Yaz" son maili örtüyordu), arama "/" ipucu kbd'ye, mobil girişte tek logo + köşe tema
+      düğmesi. Canlıda (yedek `/root/aktas-mail-frontend-yedek-2026-09-26.tgz`).
+
 ## Sıradaki adım
 
+Ek indirme ucu (`/api/messages/:uid/attachments/:i`) + okuyucudaki ek çiplerini bağlantı yapmak.
 `coklu-hesap-hatirla`'yı main'e birleştirmek (Eymen isterse). Canlı bu dalla birebir aynı
 (2026-09-25 `rsync -rcn` ile doğrulandı); main'den derleyip atma, değişiklikler geri gider.
 
@@ -40,3 +46,7 @@ main'e birleştirilmedi.
 - Yerel `.env` canlı DB'ye tünelle bağlanıyor. Test verisi için geçici PGlite
   (`@electric-sql/pglite-socket`) + `pg_dump -s` şeması kullanıldı.
 - Browser pane ekran görüntüsü bir tur geride kalabiliyor; DOM'u JS ile ölç.
+- Göz kontrolü için sahte veriyle önizleme: `frontend/mock.tsx` eski (yeni prop'lar yok). Geçici bir
+  `onizleme.tsx` fetch'i taklit edip `<App>`'i çalıştırarak kullanıldı, commit'lenmedi.
+- app.css'te temel kurallar (ör. `.login-top`, `.login-card`) dosyada medya bloklarından SONRA da
+  tanımlı; medya içinde ezmek için özgüllük artır.
