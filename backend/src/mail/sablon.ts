@@ -59,10 +59,11 @@ function webAdresi(web: string): string | null {
 }
 
 /**
- * Yanıt ve iletmede eklenen alıntı işaretleri. Bu satırdan sonrası
- * gri, girintili bir alıntı bloğu olarak basılıyor.
+ * Yanıt ve iletmenin başladığı satır — Gmail'in Türkçe biçimi.
+ * Bu satırdan sonrası alıntı olarak basılıyor.
  */
-const ALINTI_BASI = /^(-{3} .+ yazdı -{3}|-{10} İletilen mesaj -{10})$/;
+const YANIT_BASI = /^.+ tarihinde şunu yazdı:$/;
+const ILETI_BASI = /^-{10} İletilen ileti -{9}$/;
 
 function paragraflar(metin: string, renk: string): string {
   return metin
@@ -78,18 +79,40 @@ function paragraflar(metin: string, renk: string): string {
 /** Yazılan kısım ve alıntı. İmza ikisinin arasına giriyor, alıntının altına değil. */
 function parcala(metin: string): { ust: string; alinti: string } {
   const satirlar = metin.replace(/\r\n/g, "\n").split("\n");
-  const i = satirlar.findIndex((s) => ALINTI_BASI.test(s.trim()));
+  const i = satirlar.findIndex((s) => YANIT_BASI.test(s.trim()) || ILETI_BASI.test(s.trim()));
   return i === -1
     ? { ust: metin, alinti: "" }
     : { ust: satirlar.slice(0, i).join("\n"), alinti: satirlar.slice(i).join("\n") };
 }
 
+/**
+ * Gmail'in ürettiği yapının aynısı: `gmail_quote` sınıfları ve
+ * blockquote stili birebir. Gmail bu sınıfları tanıyıp alıntıyı
+ * "…" düğmesinin arkasına katlıyor.
+ */
 function alintiHtml(alinti: string, renk: string): string {
   if (!alinti.trim()) return "";
+  const [bas = "", ...govde] = alinti.split("\n");
+
+  if (ILETI_BASI.test(bas.trim())) {
+    // İletme: başlık bloğu + orijinal mesaj, sol çizgi yok
+    const bos = govde.findIndex((s) => !s.trim());
+    const basliklar = bos === -1 ? govde : govde.slice(0, bos);
+    const mesaj = bos === -1 ? "" : govde.slice(bos + 1).join("\n");
+    return (
+      `<br><div class="gmail_quote"><div dir="ltr" class="gmail_attr">${kacir(bas.trim())}<br>` +
+      basliklar.map((s) => kacir(s)).join("<br>") +
+      `<br></div><br><br>${paragraflar(mesaj, renk)}</div>`
+    );
+  }
+
+  // Yanıt: "> " önekleri bir kat soyuluyor, gri çizgili blockquote
+  const alintilanan = govde.map((s) => s.replace(/^> ?/, "")).join("\n");
   return (
-    `<div style="margin:24px 0 0;padding:2px 0 2px 14px;border-left:3px solid #dadce0;color:#5f6368;">` +
-    paragraflar(alinti, renk) +
-    `</div>`
+    `<br><div class="gmail_quote"><div dir="ltr" class="gmail_attr">${kacir(bas.trim())}<br></div>` +
+    `<blockquote class="gmail_quote" style="margin:0px 0px 0px 0.8ex;border-left:1px solid rgb(204,204,204);padding-left:1ex">` +
+    paragraflar(alintilanan, renk) +
+    `</blockquote></div>`
   );
 }
 

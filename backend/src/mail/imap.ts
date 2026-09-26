@@ -55,6 +55,9 @@ export interface MessageDetail extends MessageSummary {
    * görseller otomatik yükleniyor — aşağıdaki nota bak.
    */
   senderVerified: boolean;
+  /** Yanıtın aynı konuşmaya düşmesi için In-Reply-To / References */
+  messageId: string | null;
+  references: string[];
 }
 
 async function connect(creds: MailboxCredentials): Promise<ImapFlow> {
@@ -339,6 +342,12 @@ export async function getMessage(
         spam: govdeSkoru,
         /** Görseller spam şüphesi yüzünden mi engellendi */
         gorselSpamNedeniyle: supheli && !(opts.allowRemoteImages ?? false),
+        messageId: parsed.messageId ?? null,
+        references: Array.isArray(parsed.references)
+          ? parsed.references
+          : parsed.references
+            ? [parsed.references]
+            : [],
         attachments: parsed.attachments
           .filter((a) => a.contentDisposition !== "inline")
           .map((a) => ({

@@ -6,6 +6,9 @@ export interface Draft {
   to: string;
   subject: string;
   text: string;
+  /** Yanıtsa: Gmail'in konuşmayı gruplaması için */
+  inReplyTo?: string;
+  references?: string[];
 }
 
 export function Compose({
@@ -72,6 +75,8 @@ export function Compose({
         ...(cclar.length ? { cc: cclar } : {}),
         subject,
         text,
+        ...(draft.inReplyTo ? { inReplyTo: draft.inReplyTo } : {}),
+        ...(draft.references?.length ? { references: draft.references } : {}),
       });
       if (!res.savedToSent) {
         // Gönderim başarılı ama Sent'e yazılamadı — sessizce geçme

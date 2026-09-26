@@ -59,6 +59,34 @@ function kutuIkon(b: Mailbox): string {
   return (b.specialUse && KLASOR[b.specialUse]?.ikon) || "klasor";
 }
 
+/** Gmail'in alıntı tarihi: "26 Eyl 2026 Cmt 14:30". */
+function gmailTarihi(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const ay = d.toLocaleDateString("tr-TR", { month: "short" });
+  const gun = d.toLocaleDateString("tr-TR", { weekday: "short" });
+  const saat = d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+  return `${d.getDate()} ${ay} ${d.getFullYear()} ${gun} ${saat}`;
+}
+
+/**
+ * Gelen mailin (temizlenmiş) HTML'inden alıntılanacak düz metin.
+ * Paragraf ve satır sonları korunuyor; eskiden tek satıra eziliyordu.
+ */
+function duzMetin(html: string): string {
+  const satirli = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|tr|h[1-6]|blockquote)>/gi, "\n");
+  const metin = new DOMParser().parseFromString(satirli, "text/html").body.textContent ?? "";
+  return metin
+    .split("\n")
+    .map((s) => s.replace(/[ \t\u00a0]+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, 20000);
+}
+
 function tarih(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -353,35 +381,42 @@ export function Mail({
   }
 
   function yanitla(msg: MessageDetail, hazirMetin?: string) {
+    const kimden = msg.from?.name ? `${msg.from.name} <${msg.from.address}>` : (msg.from?.address ?? "");
     setDraft({
       to: msg.from?.address ?? "",
       subject: msg.subject.startsWith("Re:") ? msg.subject : `Re: ${msg.subject}`,
-      // Hazır cevap seçildiyse metnin başına konuyor; kullanıcı
-      // göndermeden önce düzenleyebiliyor.
-      text: `${hazirMetin ? `${hazirMetin}\n` : ""}\n\n--- ${
-        msg.from?.name || msg.from?.address
-      } yazdı ---\n`,
+      ...(msg.messageId
+        ? { inReplyTo: msg.messageId, references: [...(msg.references ?? []), msg.messageId].slice(-20) }
+        : {}),
+      // Gmail'in yanıt biçimi: imleç üstte, altta tarih satırı ve "> "
+      // ile alıntılanmış orijinal mesajın tamamı. Hazır cevap seçildiyse
+      // en başa konuyor.
+      text:
+        `${hazirMetin ?? ""}\n\n` +
+        `${kimden}, ${gmailTarihi(msg.date)} tarihinde şunu yazdı:\n` +
+        duzMetin(msg.html)
+          .split("\n")
+          .map((satir) => (satir ? `> ${satir}` : ">"))
+          .join("\n"),
     });
   }
 
   /**
-   * İlet. Yanıtla'dan iki farkı var: alıcı BOŞ başlıyor (kime
-   * ileteceğini kullanıcı seçer) ve orijinal mailin başlıkları
-   * gövdeye ekleniyor — ilet edilen mailde "bu kimden geldi"
-   * bilgisi kaybolmamalı.
+   * İlet. Gmail'deki gibi: alıcı boş, gövdede başlık bloğu ve orijinal
+   * mesaj alıntısız (yanıttaki gri çizgi iletmede yok).
    */
   function ilet(msg: MessageDetail) {
-    const govde = msg.html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const kimden = msg.from?.name ? `${msg.from.name} <${msg.from.address}>` : (msg.from?.address ?? "");
     setDraft({
       to: "",
       subject: msg.subject.startsWith("Fwd:") ? msg.subject : `Fwd: ${msg.subject}`,
       text:
-        `\n\n---------- İletilen mesaj ----------\n` +
-        `Kimden: ${msg.from?.name || ""} <${msg.from?.address ?? ""}>\n` +
-        `Tarih: ${msg.date ? new Date(msg.date).toLocaleString("tr-TR") : ""}\n` +
+        `\n\n---------- İletilen ileti ---------\n` +
+        `Kimden: ${kimden}\n` +
+        `Tarih: ${gmailTarihi(msg.date)}\n` +
         `Konu: ${msg.subject}\n` +
-        `Kime: ${msg.to.map((a) => a.address).join(", ")}\n\n` +
-        govde.slice(0, 4000),
+        `Kime: ${msg.to.map((a) => (a.name ? `${a.name} <${a.address}>` : a.address)).join(", ")}\n\n` +
+        duzMetin(msg.html),
     });
   }
 

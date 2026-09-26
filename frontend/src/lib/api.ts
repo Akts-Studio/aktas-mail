@@ -125,6 +125,9 @@ export interface MessageDetail extends MessageSummary {
   inlineImages: number;
   /** BIMI + VMC doğrulanmış gönderen (mavi tik) — uzak görselleri otomatik açılır */
   senderVerified: boolean;
+  /** Yanıtta In-Reply-To / References için */
+  messageId?: string | null;
+  references?: string[];
   /** Uzak görseller spam şüphesi (%20 üstü) yüzünden engellendiyse true */
   gorselSpamNedeniyle: boolean;
 }
@@ -456,7 +459,8 @@ export const api = {
     bcc?: string[];
     subject: string;
     text: string;
-    html?: string;
+    inReplyTo?: string;
+    references?: string[];
   }) =>
     request<{ status: string; messageId: string; savedToSent: boolean }>(
       "/api/messages/send",

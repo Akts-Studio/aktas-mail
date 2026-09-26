@@ -41,8 +41,12 @@ console.log("\nGövde");
   check("tek satır sonu <br> oluyor", html.includes("Merhaba<br>nasılsın"));
   check("adres bağlantı oluyor, sondaki nokta dışarıda",
     html.includes('href="https://akts.tr/a?b=1&amp;c=2"') && html.includes("c=2</a>."));
-  const yanit = mailOlustur("Tamam\n\n--- Ali yazdı ---\nEski metin", g, { acik: false });
-  check("yanıt alıntısı ayrı blokta", /border-left:3px[^>]*>.*Eski metin/.test(yanit.html));
+  const yanit = mailOlustur("Tamam\n\nAli <ali@ornek.com>, 26 Eyl 2026 Cmt 14:30 tarihinde şunu yazdı:\n> Eski metin\n>\n> İkinci", g, { acik: false });
+  check("yanıt Gmail blockquote'unda", /<blockquote class="gmail_quote"[^>]*>.*Eski metin/.test(yanit.html));
+  check("tarih satırı alıntının üstünde, kaçırılmış", yanit.html.includes('class="gmail_attr">Ali &lt;ali@ornek.com&gt;, 26 Eyl 2026 Cmt 14:30 tarihinde şunu yazdı:'));
+  check("> önekleri soyuluyor", !yanit.html.includes("&gt; Eski") && yanit.html.includes(">Eski metin</p>"));
+  const ilet = mailOlustur("Bak\n\n---------- İletilen ileti ---------\nKimden: Ali\nKonu: X\n\nGövde", g, { acik: false });
+  check("iletmede çizgi yok, başlıklar var", !ilet.html.includes("<blockquote") && ilet.html.includes("Kimden: Ali<br>Konu: X") && ilet.html.includes(">Gövde</p>"));
 }
 
 console.log("\nİmza");
@@ -57,7 +61,7 @@ console.log("\nİmza");
   check("kişisel renk kullanılıyor", tam.html.includes("background:#0b8043"));
   check("gönderen adı imzadan", gonderenAdi(g, { ad: "Eymen Aktaş" }) === "Eymen Aktaş");
   check("ad yoksa adresin yerel kısmı", gonderenAdi({ email: "yeliz@akts.tr", displayName: null }, undefined) === "yeliz");
-  const yanitli = mailOlustur("Tamam\n\n--- Ali yazdı ---\nEski metin", g, {});
+  const yanitli = mailOlustur("Tamam\n\nAli, 26 Eyl 2026 Cmt 14:30 tarihinde şunu yazdı:\n> Eski metin", g, {});
   check("imza alıntının üstünde (HTML)", yanitli.html.indexOf("mailto:") < yanitli.html.indexOf("Eski metin"));
   check("imza alıntının üstünde (metin)", yanitli.text.indexOf("\n-- \n") < yanitli.text.indexOf("Eski metin"));
   check("geçersiz renk reddediliyor", !imzaSemasi.safeParse({ renk: "red;background:url(x)" }).success);
