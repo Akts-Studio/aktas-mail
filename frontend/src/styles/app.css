@@ -2985,3 +2985,62 @@ kbd {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Engellenen hesaplar ── */
+.menu-ayrac {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--line);
+}
+.menu-ogesi.menu-tehlike {
+  color: var(--danger);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.engel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.engel-aciklama {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.engel-ekle {
+  display: flex;
+  gap: 10px;
+}
+.engel-ekle input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--line-hi);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.engel-liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.engel-liste li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+}
+.engel-liste li + li {
+  border-top: 1px solid var(--line);
+}
+.engel-liste li span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

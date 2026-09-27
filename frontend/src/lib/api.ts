@@ -433,6 +433,15 @@ export const api = {
       body: JSON.stringify(imza ? { text, imza } : { text }),
     }),
 
+  /** Engellenen adresler; "@alanadi.com" tüm alan adını engeller. */
+  engelListe: () => request<{ liste: string[] }>("/api/engel"),
+
+  engelle: (adres: string, kaldir = false) =>
+    request<{ liste: string[] }>("/api/engel", {
+      method: "POST",
+      body: JSON.stringify({ adres, kaldir }),
+    }),
+
   saveSettings: (ayarlar: Ayarlar) =>
     request<{ settings: Ayarlar }>("/api/profile/settings", {
       method: "PUT",

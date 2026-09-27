@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "test": "tsx src/mail/sanitize.test.ts && tsx src/mail/mime.test.ts && tsx src/mail/avatar.test.ts && tsx src/mail/spam.test.ts && tsx src/lib/crypto.test.ts && tsx src/mail/sablon.test.ts",
+    "test": "tsx src/mail/sanitize.test.ts && tsx src/mail/mime.test.ts && tsx src/mail/avatar.test.ts && tsx src/mail/spam.test.ts && tsx src/lib/crypto.test.ts && tsx src/mail/sablon.test.ts && tsx src/mail/engel.test.ts",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {

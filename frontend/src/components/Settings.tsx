@@ -7,8 +7,9 @@ import { Bildirimler } from "./Bildirimler.js";
 import { Appearance } from "./Appearance.js";
 import { SpamEgitim } from "./SpamEgitim.js";
 import { ImzaAyari } from "./ImzaAyari.js";
+import { Engellenenler } from "./Engellenenler.js";
 
-type Sekme = "profil" | "imza" | "gorunum" | "bildirim" | "spam" | "passkey" | "kullanicilar";
+type Sekme = "profil" | "imza" | "engel" | "gorunum" | "bildirim" | "spam" | "passkey" | "kullanicilar";
 type Adim = "liste" | "parola" | "kaydediliyor";
 
 /**
@@ -117,6 +118,14 @@ export function Settings({
           </button>
           <button
             role="tab"
+            aria-selected={sekme === "engel"}
+            className={`sekme ${sekme === "engel" ? "is-active" : ""}`}
+            onClick={() => setSekme("engel")}
+          >
+            Engellenenler
+          </button>
+          <button
+            role="tab"
             aria-selected={sekme === "gorunum"}
             className={`sekme ${sekme === "gorunum" ? "is-active" : ""}`}
             onClick={() => setSekme("gorunum")}
@@ -173,6 +182,13 @@ export function Settings({
             <>
               <h3>Mail imzası</h3>
               <ImzaAyari />
+            </>
+          )}
+
+          {sekme === "engel" && (
+            <>
+              <h3>Engellenen hesaplar</h3>
+              <Engellenenler />
             </>
           )}
 

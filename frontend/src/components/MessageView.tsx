@@ -62,6 +62,27 @@ export function MessageView({
   /** Gönderenin BIMI logosu / Gravatar fotoğrafı ve mavi tiki */
   const [gonderenAvatar, setGonderenAvatar] = useState<SenderAvatar | undefined>();
   const [menuAcik, setMenuAcik] = useState(false);
+  const [engelDurumu, setEngelDurumu] = useState<"yok" | "calisiyor" | "tamam">("yok");
+  const [engelHata, setEngelHata] = useState<string | null>(null);
+
+  // Başka maile geçince önceki mailin engel durumu taşınmasın
+  useEffect(() => {
+    setEngelDurumu("yok");
+    setEngelHata(null);
+  }, [uid]);
+
+  async function gondereniEngelle(adres: string) {
+    if (!window.confirm(`${adres} engellensin mi?\n\nBu adresten gelen mailler artık gelmeyecek ve gönderene “Engellendiniz” yanıtı gidecek.`)) return;
+    setEngelDurumu("calisiyor");
+    setEngelHata(null);
+    try {
+      await api.engelle(adres);
+      setEngelDurumu("tamam");
+    } catch (err) {
+      setEngelDurumu("yok");
+      setEngelHata(err instanceof Error ? err.message : "Engellenemedi");
+    }
+  }
   const frameRef = useRef<HTMLIFrameElement>(null);
 
   // Okuma teması değişince iframe yeniden boyansın
@@ -369,6 +390,25 @@ export function MessageView({
                 </div>
               )}
               {etiketHata && <div className="menu-not menu-hata">{etiketHata}</div>}
+              {msg.from?.address && (
+                <>
+                  <div className="menu-ayrac" />
+                  <button
+                    role="menuitem"
+                    className="menu-ogesi menu-tehlike"
+                    disabled={engelDurumu === "calisiyor" || engelDurumu === "tamam"}
+                    onClick={() => void gondereniEngelle(msg.from!.address)}
+                  >
+                    {engelDurumu === "tamam" ? "✓ Engellendi" : `${msg.from.address} adresini engelle`}
+                  </button>
+                  {engelDurumu === "tamam" && (
+                    <div className="menu-not">
+                      Bundan sonraki mailleri gelmeyecek; gönderene “Engellendiniz” yanıtı gidecek.
+                    </div>
+                  )}
+                  {engelHata && <div className="menu-not menu-hata">{engelHata}</div>}
+                </>
+              )}
             </div>
           )}
         </div>
