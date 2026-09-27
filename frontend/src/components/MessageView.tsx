@@ -127,7 +127,7 @@ export function MessageView({
     return `<!doctype html><html><head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src ${uzakGorselAcik ? "https: data:" : "data:"}; style-src 'unsafe-inline'; font-src data:;">
+      content="default-src 'none'; img-src ${uzakGorselAcik ? "https: data:" : "data:"}; style-src 'unsafe-inline'; font-src data:; form-action 'none'; base-uri 'none';">
 <style>
   :root{color-scheme:${koyu ? "dark" : "light"}}
   /*

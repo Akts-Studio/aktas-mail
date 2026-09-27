@@ -36,13 +36,23 @@ function isSafeHref(href: string): boolean {
  * metinleri görünüyor, düğmeler düz yazıya dönüyordu. Gmail bunların
  * hepsini geçiriyor.
  *
- * Değer süzgeci: url(), expression(), javascript:, @import ve CSS'ten
- * çıkmaya yarayan karakterler yasak. Arka plan görselleri ayrı: yalnız
- * https/cid/data:image. Yüklenip yüklenmediğine yine iframe'in CSP'si
+ * CSS İLE SIZDIRMA (PortSwigger / Gareth Heyes araştırması): CSS'in
+ * adres yükleyebildiği her yol — url(), image-set("…"), cross-fade(),
+ * @import, @font-face — koşullu seçicilerle (:hover, [attr^=…], @media)
+ * birleşince "mail açıldı / şuraya tıklandı / ekran şu" bilgisini ya da
+ * sayfadaki metni gönderene sızdırabiliyor. image-set url( yazmadan da
+ * adres yüklediği için Gmail'in görsel engelini atlatmakta kullanıldı.
+ *
+ * Kural: <style> bloklarında adres yükleyen HİÇBİR şey yok. Satır içi
+ * stilde yalnız düz https/cid/data:image arka plan görseli; satır içi
+ * stil koşullu olamaz (seçici yok) ve yüklenmesine yine iframe'in CSP'si
  * karar veriyor (görseller kapalıyken img-src yalnız data:).
  */
-const DEGER = /^(?![\s\S]*(url\s*\(|expression|javascript:|vbscript:|behavior|binding|@import))[^;{}<>\\]+$/i;
-const GORSELLI = /^(?![\s\S]*(expression|javascript:|vbscript:|behavior|binding|@import))(?:[^;{}<>\\()]|url\(\s*['"]?(?:https:|cid:|data:image\/)[^'")\s]*['"]?\s*\)|\([^()]*\))+$/i;
+const YASAK = "url\\s*\\(|image-set|cross-fade|element\\s*\\(|paint\\s*\\(|src\\s*\\(|expression|javascript:|vbscript:|behavior|binding|@import";
+const DEGER = new RegExp(`^(?![\\s\\S]*(${YASAK}))[^;{}<>\\\\]+$`, "i");
+/** Tıklama kandırmacası: negatif boşlukla öğeleri üst üste bindirmek */
+const POZITIF = new RegExp(`^(?![\\s\\S]*(${YASAK}|-\\s*\\d|-\\.))[^;{}<>\\\\]+$`, "i");
+const GORSELLI = /^(?![\s\S]*(image-set|cross-fade|element\s*\(|paint\s*\(|src\s*\(|expression|javascript:|vbscript:|behavior|binding|@import))(?:[^;{}<>\\()'"]|url\(\s*['"]?(?:https:|cid:|data:image\/)[^'")\s]*['"]?\s*\)|rgba?\([^()]*\)|(?:linear|radial)-gradient\((?:[^()]|\([^()]*\))*\))+$/i;
 
 const SERBEST_STILLER = [
   "color", "background-color", "opacity",
@@ -66,7 +76,7 @@ const SERBEST_STILLER = [
 ];
 
 const STIL_KURALLARI: Record<string, RegExp[]> = Object.fromEntries([
-  ...SERBEST_STILLER.map((ad) => [ad, [DEGER]]),
+  ...SERBEST_STILLER.map((ad) => [ad, [/^margin/.test(ad) ? POZITIF : DEGER]]),
   ["background", [GORSELLI]],
   ["background-image", [GORSELLI]],
 ]);
@@ -76,13 +86,38 @@ const STIL_KURALLARI: Record<string, RegExp[]> = Object.fromEntries([
  * yalnız mailin kendisini etkiliyor; yine de dış kaynak yükleyen ve
  * bindirme yapan her şey çıkarılıyor.
  */
-function stilBlogunuTemizle(css: string): string {
+/** CSS kaçışlarını tarayıcının okuduğu gibi çözer: "\\75 rl(" = "url(". */
+function kacislariCoz(css: string): string {
   return css
-    .replace(/@import[^;]*;?/gi, "")
-    .replace(/@font-face\s*\{[^}]*\}/gi, "")
-    .replace(/url\(\s*['"]?(?!https:|cid:|data:image\/)[^)]*\)/gi, "none")
-    .replace(/expression\s*\(|javascript:|vbscript:|behavior\s*:|-moz-binding/gi, "")
-    .replace(/(position|z-index)\s*:[^;}]*/gi, "");
+    .replace(/\\([0-9a-f]{1,6})\s?/gi, (_t, hex: string) => {
+      const kod = parseInt(hex, 16);
+      return kod > 0 && kod <= 0x10ffff ? String.fromCodePoint(kod) : "";
+    })
+    .replace(/\\(.)/g, "$1");
+}
+
+function stilBlogunuTemizle(css: string): string {
+  // İç içe kaçış ("\\5c 75" → "\\75" → "u") ve yorumla bölme bitene kadar
+  let onceki = "";
+  let temiz = css;
+  for (let i = 0; i < 8 && temiz !== onceki; i++) {
+    onceki = temiz;
+    temiz = kacislariCoz(temiz.replace(/\/\*[\s\S]*?\*\//g, ""));
+  }
+  return (
+    temiz
+      // Çözülen "<\/style>" bloktan çıkıp HTML enjekte edemesin
+      .replace(/[<>]/g, "")
+      .replace(/@import[^;]*;?/gi, "")
+      .replace(/@font-face\s*\{[^}]*\}/gi, "")
+      // adres yükleyen her fonksiyon, içindekiyle birlikte
+      .replace(/(-webkit-)?(url|image-set|cross-fade|element|paint|src|image)\s*\((?:[^()]|\([^()]*\))*\)/gi, "none")
+      // url() gittikten sonra CSS'in adrese ihtiyacı yok; kalan her adres de gitsin
+      .replace(/(https?:)?\/\/[^\s;}"')]*/gi, "")
+      .replace(/expression\s*\(|javascript:|vbscript:|behavior\s*:|-moz-binding/gi, "")
+      .replace(/(position|z-index)\s*:[^;}]*/gi, "")
+      .replace(/margin[\w-]*\s*:\s*-[^;}]*/gi, "")
+  );
 }
 
 export function sanitizeEmailHtml(
@@ -180,6 +215,48 @@ export function sanitizeEmailHtml(
     blockedImages,
     externalLinks,
   };
+}
+
+/** İnsan gözüne görünmeyen öğe: prompt injection metinleri buraya saklanıyor. */
+const GIZLI = /(display\s*:\s*none|visibility\s*:\s*hidden|opacity\s*:\s*0(\.0+)?(?![.\d])|font-size\s*:\s*0(px|pt|em|rem|%)?(?![.\d])|max-height\s*:\s*0(px)?(?![.\d])|mso-hide\s*:\s*all|(^|;)\s*(width|height)\s*:\s*0(px)?(?![.\d]))/i;
+
+/**
+ * Yapay zekâya (Jarvis) verilecek düz metin — yalnızca GÖRÜNEN kısım.
+ *
+ * "Prompt injection": saldırgan maile gözle görünmeyen bir talimat
+ * gizliyor (display:none, font-size:0, opacity:0…). İnsan okumuyor ama
+ * maili okuyan bir yapay zekâ onu talimat sanıp uygulayabiliyor. Gizli
+ * öğeler bu metinden tamamen çıkarılıyor ve sayısı bildiriliyor.
+ */
+export function gorunurMetin(html: string): { metin: string; gizliOge: number } {
+  let gizliOge = 0;
+  const temiz = sanitizeHtml(html, {
+    allowedTags: ["p", "div", "br", "li", "tr", "td", "th", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "a", "span", "table", "tbody", "ul", "ol"],
+    allowedAttributes: {},
+    nonTextTags: ["script", "style", "textarea", "option", "noscript", "title", "head"],
+    exclusiveFilter: (frame) => {
+      const stil = frame.attribs["style"] ?? "";
+      const gizli = GIZLI.test(stil) || "hidden" in frame.attribs || frame.attribs["aria-hidden"] === "true";
+      if (gizli) gizliOge += 1;
+      return gizli;
+    },
+  });
+  const metin = temiz
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|tr|h[1-6]|blockquote)>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .split("\n")
+    .map((s) => s.replace(/\s+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { metin, gizliOge };
 }
 
 /**

@@ -26,6 +26,12 @@ ajan mevcut oturum sistemini kullanamaz.
 | Silme, taşıma | ❌ yok |
 
 Uçlar: `GET /api/jarvis/ozet`, `/api/jarvis/mail/:uid`, `/api/jarvis/ara`.
+
+`/api/jarvis/mail/:uid` gövdeyi HTML olarak değil, yalnızca **görünen metin**
+olarak (`mesaj.metin`) döndürür. Gizli öğeler (display:none, font-size:0,
+opacity:0…) prompt injection için kullanıldığından çıkarılır ve sayısı
+`mesaj.gizliOge`'de bildirilir. Yanıttaki `guvenlik` alanı, içeriğin talimat
+değil veri olduğunu hatırlatır; Jarvis bu metni kendi yönergesi saymamalı.
 Kimlik: `Authorization: Bearer <token>`. Token düz metin saklanmıyor,
 `.env`'de yalnızca SHA-256 özeti var.
 
