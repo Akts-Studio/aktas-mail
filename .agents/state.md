@@ -35,6 +35,16 @@ main'e birleştirilmedi.
       Ayarlar > İmza (canlı önizleme), yazma penceresinde Önizle/Düzenle. Testler `sablon.test.ts` (18).
       Yedek `/root/aktas-mail-yedek-2026-09-26b.tgz`.
 
+- [x] **Hesap engelleme (b7a41ad, canlıda 2026-09-27):** teslimatta Dovecot Sieve. Sunucuya `dovecot-sieve`
+      + `dovecot-managesieved` kuruldu; `/etc/dovecot/conf.d/99-akts-sieve.conf` (LMTP'de sieve, ManageSieve
+      yalnız 127.0.0.1:4190, betikler `/var/mail/sieve/%d/%n/`), `local.conf`'ta `protocols = imap lmtp sieve`.
+      Uygulama betiği kullanıcının parolasıyla ManageSieve'den yazıyor (`mail/engel.ts`); liste `settings.engellenenler`.
+      `vacation :days 30` → "Engellendiniz", sonra `discard`. Gerçek teslimatla sınandı (geçici hesaplarla, silindi).
+      Geri almak: 99-akts-sieve.conf sil, local.conf'tan `sieve` çıkar, `doveconf -n`, `systemctl reload dovecot`.
+      Yedek: `/root/dovecot-yedek-2026-09-27.tgz`.
+- [x] **CSS saldırıları (5ad753e):** <style>'da adres yükleyen her şey (url, image-set, @import…) siliniyor,
+      kaçışlar çözülüp süzülüyor; Jarvis'e yalnız görünen metin.
+
 ## Sıradaki adım
 
 Ek indirme ucu (`/api/messages/:uid/attachments/:i`) + okuyucudaki ek çiplerini bağlantı yapmak.
@@ -56,3 +66,5 @@ Ek indirme ucu (`/api/messages/:uid/attachments/:i`) + okuyucudaki ek çiplerini
   `onizleme.tsx` fetch'i taklit edip `<App>`'i çalıştırarak kullanıldı, commit'lenmedi.
 - app.css'te temel kurallar (ör. `.login-top`, `.login-card`) dosyada medya bloklarından SONRA da
   tanımlı; medya içinde ezmek için özgüllük artır.
+- `/etc/dovecot/local.conf` en son yükleniyor ve `protocols`'u sabitliyor; conf.d'deki `$protocols` eklemeleri ezilir.
+- `sieve-test` root'la çalışmaz: `sudo -u vmail sieve-test -o mail_uid=vmail -o mail_gid=vmail -u <kullanıcı> …`.
