@@ -47,11 +47,15 @@ main'e birleştirilmedi.
 
 ## Sıradaki adım
 
-Ek indirme ucu (`/api/messages/:uid/attachments/:i`) + okuyucudaki ek çiplerini bağlantı yapmak.
+Ek indirme canlıda (6981384, 2026-10-15). Gerçek bir mailde .xlsx indirmeyi tarayıcıda dene.
 `coklu-hesap-hatirla`'yı main'e birleştirmek (Eymen isterse). Canlı bu dalla birebir aynı
 (2026-09-25 `rsync -rcn` ile doğrulandı); main'den derleyip atma, değişiklikler geri gider.
 
 ## Bilinen tuzaklar
+
+- pm2 süreci `aktasmail` kullanıcısıyla `/root/.nvm/.../node` (v22) çalıştırıyor; `/root` 711
+  olmalı. 2026-10-15'te bir şey onu 700 yaptı, restart sonrası süreç sessizce başlamadı
+  (pm2 "online" ama PID yok, 502). `/usr/bin/node` v20, bu kodu çalıştıramaz.
 
 - Dağıtım elle: yerelde `npm run build` (backend) + `npx vite build` (frontend),
   `rsync -rc` ile `/opt/aktas-mail/{backend,frontend}/dist/`, sonra
