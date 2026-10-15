@@ -6,6 +6,7 @@ import {
   listMailboxes,
   listMessages,
   getMessage,
+  getAttachment,
   setFlag,
   searchMessages,
   tumunuOkunduYap,
@@ -198,6 +199,43 @@ export async function mailRoutes(app: FastifyInstance): Promise<void> {
 
     if (!message) return reply.code(404).send({ error: "Mesaj bulunamadı" });
     return reply.send({ message });
+  });
+
+  /**
+   * Ek indirme. Her zaman `attachment` olarak ve nosniff ile gönderiliyor:
+   * ekteki bir HTML/SVG bizim origin'imizde açılırsa oturum çalınabilir.
+   */
+  app.get("/api/messages/:uid/attachments/:index", async (req, reply) => {
+    const session = await requireSession(req, reply);
+    if (!session) return;
+
+    const params = z
+      .object({
+        uid: z.coerce.number().int().positive(),
+        index: z.coerce.number().int().min(0).max(500),
+      })
+      .safeParse(req.params);
+    const query = z.object({ mailbox: z.string().max(255).default("INBOX") }).safeParse(req.query);
+    if (!params.success || !query.success) return reply.code(400).send({ error: "Geçersiz istek" });
+
+    const ek = await getAttachment(
+      { user: session.email, pass: session.imapPassword },
+      params.data.uid,
+      params.data.index,
+      query.data.mailbox,
+    );
+    if (!ek) return reply.code(404).send({ error: "Ek bulunamadı" });
+
+    const ascii = ek.filename.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
+    return reply
+      .header("Content-Type", ek.contentType)
+      .header("X-Content-Type-Options", "nosniff")
+      .header("Content-Security-Policy", "sandbox")
+      .header(
+        "Content-Disposition",
+        `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(ek.filename)}`,
+      )
+      .send(ek.content);
   });
 
   /**

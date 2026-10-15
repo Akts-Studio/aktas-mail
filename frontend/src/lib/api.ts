@@ -80,6 +80,11 @@ export interface SenderAvatar {
   source: "bimi" | "dmarc" | "gravatar" | "none";
 }
 
+/** Ek indirme adresi — düz bağlantı, çerezle yetkilenir. */
+export function ekAdresi(uid: number, index: number, mailbox: string): string {
+  return `${BASE}/api/messages/${uid}/attachments/${index}?mailbox=${encodeURIComponent(mailbox)}`;
+}
+
 export interface Attachment {
   filename: string;
   contentType: string;

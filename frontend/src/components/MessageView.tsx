@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { api, type MessageDetail } from "../lib/api.js";
+import { api, ekAdresi, type MessageDetail } from "../lib/api.js";
 import { cozulmusOkumaTemasi, kayitliOkumaTemasi } from "../lib/theme.js";
 import { OKUMA_TEMA_OLAYI, ReadingThemeToggle } from "./ReadingThemeToggle.js";
 import { Avatar } from "./Avatar.js";
@@ -60,9 +60,13 @@ export function MessageView({
   const [etiket, setEtiket] = useState<"spam" | "ham" | null>(null);
   const [etiketHata, setEtiketHata] = useState<string | null>(null);
   /** Gönderenin BIMI logosu / Gravatar fotoğrafı ve mavi tiki */
-  const [gonderenAvatar, setGonderenAvatar] = useState<SenderAvatar | undefined>();
+  const [gonderenAvatar, setGonderenAvatar] = useState<
+    SenderAvatar | undefined
+  >();
   const [menuAcik, setMenuAcik] = useState(false);
-  const [engelDurumu, setEngelDurumu] = useState<"yok" | "calisiyor" | "tamam">("yok");
+  const [engelDurumu, setEngelDurumu] = useState<"yok" | "calisiyor" | "tamam">(
+    "yok",
+  );
   const [engelHata, setEngelHata] = useState<string | null>(null);
 
   // Başka maile geçince önceki mailin engel durumu taşınmasın
@@ -72,7 +76,12 @@ export function MessageView({
   }, [uid]);
 
   async function gondereniEngelle(adres: string) {
-    if (!window.confirm(`${adres} engellensin mi?\n\nBu adresten gelen mailler artık gelmeyecek ve gönderene “Engellendiniz” yanıtı gidecek.`)) return;
+    if (
+      !window.confirm(
+        `${adres} engellensin mi?\n\nBu adresten gelen mailler artık gelmeyecek ve gönderene “Engellendiniz” yanıtı gidecek.`,
+      )
+    )
+      return;
     setEngelDurumu("calisiyor");
     setEngelHata(null);
     try {
@@ -271,17 +280,34 @@ export function MessageView({
     sayfa değil. İstenen davranış da buydu.
   */
 
-  if (error) return <div className="reader"><p className="empty">{error}</p></div>;
+  if (error)
+    return (
+      <div className="reader">
+        <p className="empty">{error}</p>
+      </div>
+    );
   if (!msg)
     return (
       <div className="reader" aria-busy="true" aria-label="Yükleniyor…">
         <div className="iskelet-okuyucu">
-          <span className="iskelet iskelet-cizgi" style={{ width: "58%", height: 22 }} />
+          <span
+            className="iskelet iskelet-cizgi"
+            style={{ width: "58%", height: 22 }}
+          />
           <div className="iskelet-satir">
-            <span className="iskelet iskelet-avatar" style={{ width: 40, height: 40 }} />
+            <span
+              className="iskelet iskelet-avatar"
+              style={{ width: 40, height: 40 }}
+            />
             <div className="iskelet-govde">
-              <span className="iskelet iskelet-cizgi" style={{ width: "34%" }} />
-              <span className="iskelet iskelet-cizgi soluk" style={{ width: "48%" }} />
+              <span
+                className="iskelet iskelet-cizgi"
+                style={{ width: "34%" }}
+              />
+              <span
+                className="iskelet iskelet-cizgi soluk"
+                style={{ width: "48%" }}
+              />
             </div>
           </div>
           <span className="iskelet iskelet-blok" />
@@ -317,14 +343,20 @@ export function MessageView({
         >
           <span key={String(msg.flagged)}>{msg.flagged ? "★" : "☆"}</span>
         </button>
-        <button className="btn btn-ghost btn-ikonlu" onClick={() => onReply(msg)}>
+        <button
+          className="btn btn-ghost btn-ikonlu"
+          onClick={() => onReply(msg)}
+        >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M9 14L4 9l5-5" />
             <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
           </svg>
           Yanıtla
         </button>
-        <button className="btn btn-ghost btn-ikonlu btn-ilet" onClick={() => onForward(msg)}>
+        <button
+          className="btn btn-ghost btn-ikonlu btn-ilet"
+          onClick={() => onForward(msg)}
+        >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M15 14l5-5-5-5" />
             <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
@@ -389,24 +421,33 @@ export function MessageView({
                   Kaydedildi — model bunu öğrenecek.
                 </div>
               )}
-              {etiketHata && <div className="menu-not menu-hata">{etiketHata}</div>}
+              {etiketHata && (
+                <div className="menu-not menu-hata">{etiketHata}</div>
+              )}
               {msg.from?.address && (
                 <>
                   <div className="menu-ayrac" />
                   <button
                     role="menuitem"
                     className="menu-ogesi menu-tehlike"
-                    disabled={engelDurumu === "calisiyor" || engelDurumu === "tamam"}
+                    disabled={
+                      engelDurumu === "calisiyor" || engelDurumu === "tamam"
+                    }
                     onClick={() => void gondereniEngelle(msg.from!.address)}
                   >
-                    {engelDurumu === "tamam" ? "✓ Engellendi" : `${msg.from.address} adresini engelle`}
+                    {engelDurumu === "tamam"
+                      ? "✓ Engellendi"
+                      : `${msg.from.address} adresini engelle`}
                   </button>
                   {engelDurumu === "tamam" && (
                     <div className="menu-not">
-                      Bundan sonraki mailleri gelmeyecek; gönderene “Engellendiniz” yanıtı gidecek.
+                      Bundan sonraki mailleri gelmeyecek; gönderene
+                      “Engellendiniz” yanıtı gidecek.
                     </div>
                   )}
-                  {engelHata && <div className="menu-not menu-hata">{engelHata}</div>}
+                  {engelHata && (
+                    <div className="menu-not menu-hata">{engelHata}</div>
+                  )}
                 </>
               )}
             </div>
@@ -429,7 +470,10 @@ export function MessageView({
           </div>
           <time>
             {msg.date
-              ? new Date(msg.date).toLocaleString("tr-TR", { dateStyle: "medium", timeStyle: "short" })
+              ? new Date(msg.date).toLocaleString("tr-TR", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })
               : ""}
           </time>
         </div>
@@ -438,19 +482,32 @@ export function MessageView({
             Kime: {msg.to.map((a) => a.address).join(", ")}
           </div>
         )}
-        {/* Ekler arka uçtan geliyordu ama hiç gösterilmiyordu; varlıkları
-            yalnızca listedeki ataştan anlaşılıyordu. İndirme ucu henüz yok. */}
+        {/* Ekler: tıklayınca /api/messages/:uid/attachments/:i'den iner. */}
         {msg.attachments.length > 0 && (
           <ul className="ekler" aria-label="Ekler">
             {msg.attachments.map((a, i) => (
-              <li key={i} className="ek" title={a.contentType}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
-                     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <path d="M14 2v6h6" />
-                </svg>
-                <span className="ek-ad">{a.filename}</span>
-                <span className="ek-boyut">{boyut(a.size)}</span>
+              <li key={i}>
+                <a
+                  className="ek"
+                  href={ekAdresi(msg.uid, i, mailbox)}
+                  download={a.filename}
+                  title={`${a.contentType} — indir`}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.9"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <path d="M14 2v6h6" />
+                  </svg>
+                  <span className="ek-ad">{a.filename}</span>
+                  <span className="ek-boyut">{boyut(a.size)}</span>
+                </a>
               </li>
             ))}
           </ul>
@@ -466,7 +523,9 @@ export function MessageView({
         tooltip'inde duruyor — iki kez söylemeye gerek yok.
       */}
       {msg.blockedImages > 0 && !showImages && (
-        <div className={`banner ${msg.gorselSpamNedeniyle ? "is-supheli" : ""}`}>
+        <div
+          className={`banner ${msg.gorselSpamNedeniyle ? "is-supheli" : ""}`}
+        >
           <span>
             <b>{msg.blockedImages} uzak görsel engellendi.</b>{" "}
             {msg.gorselSpamNedeniyle ? (

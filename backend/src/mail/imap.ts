@@ -365,6 +365,39 @@ export async function getMessage(
 }
 
 /**
+ * Tek bir eki indirir. `index`, getMessage'ın döndürdüğü `attachments`
+ * dizisindeki sırayla aynı (inline olmayanlar) — iki taraf aynı filtreyi
+ * kullanmalı, yoksa yanlış dosya iner.
+ */
+export async function getAttachment(
+  creds: MailboxCredentials,
+  uid: number,
+  index: number,
+  mailbox = "INBOX",
+): Promise<{ filename: string; contentType: string; content: Buffer } | null> {
+  const client = await connect(creds);
+  try {
+    const lock = await client.getMailboxLock(mailbox);
+    try {
+      const msg = await client.fetchOne(String(uid), { uid: true, source: true }, { uid: true });
+      if (!msg || !msg.source) return null;
+      const parsed = await simpleParser(msg.source);
+      const ek = parsed.attachments.filter((a) => a.contentDisposition !== "inline")[index];
+      if (!ek) return null;
+      return {
+        filename: ek.filename ?? "ek",
+        contentType: ek.contentType || "application/octet-stream",
+        content: ek.content,
+      };
+    } finally {
+      lock.release();
+    }
+  } finally {
+    await client.logout().catch(() => {});
+  }
+}
+
+/**
  * Sunucu tarafı arama — IMAP SEARCH.
  *
  * İstemci tarafı filtre yalnızca ekrana yüklenmiş mesajlara bakar;

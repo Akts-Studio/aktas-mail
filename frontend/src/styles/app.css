@@ -762,7 +762,15 @@ kbd {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--surface);
+  color: inherit;
   font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.ek:hover,
+.ek:focus-visible {
+  border-color: var(--accent);
 }
 .ek svg {
   width: 16px;
