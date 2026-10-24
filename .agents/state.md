@@ -1,6 +1,6 @@
 # Durum — aktas-mail
 
-Güncelleme: 2026-09-26 22:00 | Son araç: claude
+Güncelleme: 2026-10-24 | Son araç: claude
 
 ## Hedef
 
@@ -45,13 +45,26 @@ main'e birleştirilmedi.
 - [x] **CSS saldırıları (5ad753e):** <style>'da adres yükleyen her şey (url, image-set, @import…) siliniyor,
       kaçışlar çözülüp süzülüyor; Jarvis'e yalnız görünen metin.
 
+- [ ] **Uzak görsel vekili (2026-10-24, commit'lenmedi, canlıda DEĞİL):** kök neden sunucu spam olmayan
+      mailde görselleri açıyor ama iframe CSP'si yalnız `showImages || senderVerified`'da açılıyordu → görseller
+      sessizce kırık. Artık `mail/gorsel-proxy.ts` + `GET /api/img?u=&s=` (HMAC imzalı, SSRF: DNS sabitleme, iç ağ,
+      port, svg yok, 8 MB, 3 yönlendirme); sanitize izinli görselleri ve satır içi arka planları vekile çeviriyor;
+      CSP sabit `img-src data: <origin>`. Testler: sanitize 43, gorsel-proxy 20; gerçek euromsg görseli vekilden geldi.
+
 ## Sıradaki adım
+
+Görsel vekilini tarayıcıda gerçek bir pazarlama mailinde dene, sonra commit + dağıtım (nginx `/api/img`'i
+backend'e geçiriyor mu kontrol et).
+
 
 Ek indirme canlıda (6981384, 2026-10-15). Gerçek bir mailde .xlsx indirmeyi tarayıcıda dene.
 `coklu-hesap-hatirla`'yı main'e birleştirmek (Eymen isterse). Canlı bu dalla birebir aynı
 (2026-09-25 `rsync -rcn` ile doğrulandı); main'den derleyip atma, değişiklikler geri gider.
 
 ## Bilinen tuzaklar
+
+- Bu Mac'te `tsx` esbuild ikilisi bozuk (TransformError); testleri `tsc --ignoreConfig --outDir <geçici>` ile
+  derleyip node ile çalıştır. Node 22 `http.get`'te özel `lookup`'a `all: true` geçiyor, dizi dönmek şart.
 
 - pm2 süreci `aktasmail` kullanıcısıyla `/root/.nvm/.../node` (v22) çalıştırıyor; `/root` 711
   olmalı. 2026-10-15'te bir şey onu 700 yaptı, restart sonrası süreç sessizce başlamadı

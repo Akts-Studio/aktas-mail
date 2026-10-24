@@ -6,6 +6,7 @@ import { avatarGetir } from "./avatar-cache.js";
 import { bakimYap, type BakimSonucu } from "./bakim.js";
 import { env } from "../env.js";
 import { sanitizeEmailHtml, plainTextToHtml } from "./sanitize.js";
+import { vekilAdresi } from "./gorsel-proxy.js";
 
 /**
  * Uygulama kendi Dovecot'una 127.0.0.1 üzerinden bağlanır.
@@ -309,7 +310,7 @@ export async function getMessage(
       const gorselleriAc = (opts.allowRemoteImages ?? false) || !supheli;
 
       const cleaned = parsed.html
-        ? sanitizeEmailHtml(parsed.html, { allowRemoteImages: gorselleriAc })
+        ? sanitizeEmailHtml(parsed.html, { allowRemoteImages: gorselleriAc, vekil: vekilAdresi })
         : {
             html: plainTextToHtml(parsed.text ?? ""),
             blockedImages: 0,

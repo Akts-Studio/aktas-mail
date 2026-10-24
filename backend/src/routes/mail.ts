@@ -23,6 +23,7 @@ import { spamSkorla } from "../mail/spam.js";
 import { sendMail } from "../mail/send.js";
 import { mailOlustur, gonderenAdi, imzaSemasi, type Imza } from "../mail/sablon.js";
 import { audit } from "../lib/audit.js";
+import { vekilAdresiniCoz, gorseliGetir } from "../mail/gorsel-proxy.js";
 import { avatarlariGetir } from "../mail/avatar-cache.js";
 import { SESSION_COOKIE } from "./auth.js";
 
@@ -94,6 +95,33 @@ async function requireSession(req: FastifyRequest, reply: FastifyReply) {
 }
 
 export async function mailRoutes(app: FastifyInstance): Promise<void> {
+  /**
+   * Uzak görsel vekili. Oturum İSTEMİYOR: istek sandbox'lı (opak origin)
+   * iframe'den geliyor, SameSite çerez orada gönderilmiyor. Yetki imzada —
+   * imzalı adresi yalnızca maili açan kullanıcı alıyor.
+   */
+  app.get(
+    "/api/img",
+    { config: { rateLimit: { max: 600, timeWindow: "1 minute" } } },
+    async (req, reply) => {
+      const q = z.object({ u: z.string().max(8192), s: z.string().max(64) }).safeParse(req.query);
+      const adres = q.success ? vekilAdresiniCoz(q.data.u, q.data.s) : null;
+      if (!adres) return reply.code(403).send();
+
+      const gorsel = await gorseliGetir(adres).catch(() => null);
+      if (!gorsel) return reply.code(404).send();
+
+      return reply
+        .header("content-type", gorsel.tur)
+        .header("x-content-type-options", "nosniff")
+        .header("content-security-policy", "default-src 'none'; sandbox")
+        // helmet'in varsayılanı same-origin; opak origin'li iframe görseli alamıyordu
+        .header("cross-origin-resource-policy", "cross-origin")
+        .header("cache-control", "private, max-age=86400")
+        .send(gorsel.govde);
+    },
+  );
+
   app.get("/api/mailboxes", async (req, reply) => {
     const session = await requireSession(req, reply);
     if (!session) return;

@@ -183,5 +183,20 @@ console.log("\nGelen mail HTML'i — saldırı testleri\n");
   check("düz metindeki link güvenli <a> oluyor", /rel="noopener/.test(out), out);
 }
 
+// Görsel vekili: izinli uzak görseller ve arka planlar vekilden geçer
+{
+  const vekil = (u: string) => `/api/img?u=${encodeURIComponent(u)}`;
+  const acik = sanitizeEmailHtml(
+    `<img src="https://ornek.site/a.jpg"><td style="background:url('https://ornek.site/b.png')">x</td>`,
+    { allowRemoteImages: true, vekil },
+  );
+  check("izinli <img> vekil adresine çevriliyor", acik.html.includes('src="/api/img?u=https%3A%2F%2Fornek.site%2Fa.jpg"'), acik.html);
+  check("satır içi arka plan vekilden geçiyor", acik.html.includes("url(/api/img?u=https%3A%2F%2Fornek.site%2Fb.png)"), acik.html);
+  check("çıktıda doğrudan uzak adres kalmıyor", !/(src=|url\()["']?https?:/i.test(acik.html), acik.html);
+
+  const kapali = sanitizeEmailHtml(`<img src="https://ornek.site/a.jpg">`, { allowRemoteImages: false, vekil });
+  check("izin yoksa vekil kullanılmıyor, yer tutucu kalıyor", kapali.blockedImages === 1 && !kapali.html.includes("/api/img"), kapali.html);
+}
+
 console.log(`\nSonuç: ${passed} geçti, ${failed} kaldı\n`);
 process.exit(failed === 0 ? 0 : 1);

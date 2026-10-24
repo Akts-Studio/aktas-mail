@@ -52,7 +52,7 @@ const YASAK = "url\\s*\\(|image-set|cross-fade|element\\s*\\(|paint\\s*\\(|src\\
 const DEGER = new RegExp(`^(?![\\s\\S]*(${YASAK}))[^;{}<>\\\\]+$`, "i");
 /** Tıklama kandırmacası: negatif boşlukla öğeleri üst üste bindirmek */
 const POZITIF = new RegExp(`^(?![\\s\\S]*(${YASAK}|-\\s*\\d|-\\.))[^;{}<>\\\\]+$`, "i");
-const GORSELLI = /^(?![\s\S]*(image-set|cross-fade|element\s*\(|paint\s*\(|src\s*\(|expression|javascript:|vbscript:|behavior|binding|@import))(?:[^;{}<>\\()'"]|url\(\s*['"]?(?:https:|cid:|data:image\/)[^'")\s]*['"]?\s*\)|rgba?\([^()]*\)|(?:linear|radial)-gradient\((?:[^()]|\([^()]*\))*\))+$/i;
+const GORSELLI = /^(?![\s\S]*(image-set|cross-fade|element\s*\(|paint\s*\(|src\s*\(|expression|javascript:|vbscript:|behavior|binding|@import))(?:[^;{}<>\\()'"]|url\(\s*['"]?(?:https:|cid:|data:image\/|\/api\/img\?)[^'")\s]*['"]?\s*\)|rgba?\([^()]*\)|(?:linear|radial)-gradient\((?:[^()]|\([^()]*\))*\))+$/i;
 
 const SERBEST_STILLER = [
   "color", "background-color", "opacity",
@@ -120,11 +120,24 @@ function stilBlogunuTemizle(css: string): string {
   );
 }
 
+/** Satır içi stildeki uzak arka plan görsellerini vekil adresine çevirir. */
+function stilVekili(stil: string, vekil: (adres: string) => string): string {
+  return stil.replace(/url\(\s*(['"]?)(https?:\/\/[^'")\s]+)\1\s*\)/gi, (_t, _q, adres: string) => `url(${vekil(adres)})`);
+}
+
 export function sanitizeEmailHtml(
   dirty: string,
-  opts: { allowRemoteImages?: boolean } = {},
+  opts: { allowRemoteImages?: boolean; vekil?: (adres: string) => string } = {},
 ): SanitizeResult {
   const allowRemoteImages = opts.allowRemoteImages ?? false;
+  /**
+   * Verilirse izin verilen uzak görseller doğrudan değil bu adres
+   * üzerinden yüklenir (bkz. gorsel-proxy.ts). Satır içi arka planlar
+   * da; vekilden geçmeyen uzak adresi iframe'in CSP'si zaten yüklemez.
+   */
+  const vekil = allowRemoteImages ? opts.vekil : undefined;
+  const stiliCevir = (attribs: Record<string, string>) =>
+    vekil && attribs["style"] ? { ...attribs, style: stilVekili(attribs["style"], vekil) } : attribs;
 
   let blockedImages = 0;
   let externalLinks = 0;
@@ -167,13 +180,15 @@ export function sanitizeEmailHtml(
     allowedStyles: { "*": STIL_KURALLARI },
 
     transformTags: {
+      "*": (tagName, attribs) => ({ tagName, attribs: stiliCevir(attribs) }),
+
       a: (tagName, attribs) => {
         const href = attribs["href"] ?? "";
         if (/^https?:\/\//i.test(href)) externalLinks += 1;
         return {
           tagName: "a",
           attribs: {
-            ...attribs,
+            ...stiliCevir(attribs),
             // noopener: açılan sayfa window.opener ile bize erişemesin
             rel: "noopener noreferrer nofollow",
             target: "_blank",
@@ -200,7 +215,8 @@ export function sanitizeEmailHtml(
             },
           };
         }
-        return { tagName: "img", attribs };
+        if (isRemote && vekil) return { tagName: "img", attribs: { ...stiliCevir(attribs), src: vekil(src) } };
+        return { tagName: "img", attribs: stiliCevir(attribs) };
       },
     },
 

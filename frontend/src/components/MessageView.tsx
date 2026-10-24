@@ -147,17 +147,18 @@ export function MessageView({
     const soluk = koyu ? "#9aa0a6" : "#5f6368";
 
     /**
-     * CSP'nin `img-src`'i ile sunucunun temizlediği HTML AYNI kararı
-     * vermeli. Sunucu doğrulanmış gönderende uzak görselleri geçiriyor;
-     * burada CSP kapalı kalırsa görseller yine yüklenmez ve sebebi
-     * anlaşılmaz olur.
+     * Uzak görsel kararını YALNIZ sunucu veriyor: izin verdiklerini
+     * `/api/img` vekiline çeviriyor, gerisini yer tutucuyla değiştiriyor.
+     * CSP bu yüzden sabit — yalnız data: ve kendi origin'imiz. Önce burada
+     * ayrı bir karar vardı (showImages || senderVerified); sunucu açıp bu
+     * kapattığında görseller sessizce kırılıyordu.
      */
-    const uzakGorselAcik = showImages || msg.senderVerified;
+    const imgSrc = `data: ${window.location.origin}`;
 
     return `<!doctype html><html><head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src ${uzakGorselAcik ? "https: data:" : "data:"}; style-src 'unsafe-inline'; font-src data:; form-action 'none'; base-uri 'none';">
+      content="default-src 'none'; img-src ${imgSrc}; style-src 'unsafe-inline'; font-src data:; form-action 'none'; base-uri 'none';">
 <style>
   :root{color-scheme:${koyu ? "dark" : "light"}}
   /*
@@ -212,7 +213,7 @@ export function MessageView({
   /* Yalnız stilsiz alıntılar; mailin kendi (ör. Gmail) alıntı stili ezilmesin */
   blockquote:not([style]){margin:0 0 0 12px;padding-left:12px;border-left:2px solid ${cizgi};color:${soluk}}
 </style></head><body><div class="am-govde${tasarimli ? " am-tasarimli" : ""}">${msg.html}</div></body></html>`;
-  }, [msg, showImages, theme]);
+  }, [msg, theme]);
 
   // Avatar mesajdan AYRI çekiliyor: DNS + HTTP araması mailin
   // açılmasını bekletmemeli. Sonuç sunucuda önbellekli.
