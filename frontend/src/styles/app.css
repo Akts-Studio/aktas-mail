@@ -3489,3 +3489,290 @@ kbd {
     display: none;
   }
 }
+
+/* ══════════════════════════════════════════════════════════
+   ULTRA-PRO POLISH — Linear / Spacemail / Superhuman seviyesi
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Liste klasör başlığı ── */
+.list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 14px 6px;
+  flex: none;
+}
+.list-head-left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.list-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+  line-height: 1.2;
+}
+.list-meta {
+  font-size: 11.5px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+.list-cmd-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  transition: background var(--duration-quick) var(--ease-smooth-out),
+    color var(--duration-quick) var(--ease-smooth-out),
+    border-color var(--duration-quick) var(--ease-smooth-out);
+}
+.list-cmd-pill:hover {
+  background: var(--surface-hi);
+  color: var(--fg);
+  border-color: var(--line-hi);
+}
+.list-cmd-pill kbd {
+  font-size: 10.5px;
+  padding: 1px 5px;
+}
+
+.list-bar {
+  padding: 8px 12px 10px;
+  border-bottom: 0;
+}
+
+/* ── Nefes alan modern kartlı mesaj listesi ── */
+.rows {
+  padding: 6px 8px 16px;
+}
+.rows .row {
+  border-radius: 11px;
+  border: 1px solid transparent;
+  margin-bottom: 2px;
+  padding: 11px 12px;
+  cursor: pointer;
+  background: transparent;
+  transition: background var(--duration-quick) var(--ease-smooth-out),
+    border-color var(--duration-quick) var(--ease-smooth-out),
+    box-shadow var(--duration-quick) var(--ease-smooth-out);
+}
+.rows .row.is-unread {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: none;
+}
+.rows .row.is-unread::before {
+  display: none;
+}
+.rows .row:hover {
+  background: var(--surface-hi);
+  border-color: var(--line);
+}
+.rows .row.is-selected {
+  background: var(--accent-dim);
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.row-unread-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+  flex: none;
+  align-self: center;
+}
+
+/* ── Hover hızlı eylemleri ── */
+.row-quick {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  margin: -3px -4px -3px 0;
+}
+.row:hover .row-date,
+.row:focus-within .row-date {
+  display: none;
+}
+.row:hover .row-quick,
+.row:focus-within .row-quick {
+  display: inline-flex;
+  animation: rq-in var(--duration-quick) var(--ease-smooth-out);
+}
+@keyframes rq-in {
+  from { opacity: 0; transform: translateX(4px); }
+}
+.rq-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 13px;
+  transition: background var(--duration-quick) var(--ease-smooth-out),
+    color var(--duration-quick) var(--ease-smooth-out),
+    transform var(--duration-quick) var(--ease-smooth-out);
+}
+.rq-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.rq-btn:hover {
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: var(--shadow-1);
+}
+.rq-btn:active {
+  transform: scale(0.9);
+}
+.rq-btn.is-starred {
+  color: var(--warn);
+}
+.rq-btn.is-danger:hover {
+  color: var(--danger);
+}
+
+/* ── Okuyucu & boş durum zanaatı ── */
+.pane {
+  background: var(--bg);
+}
+.pane-empty {
+  background:
+    radial-gradient(60% 50% at 50% 42%, var(--accent-dim), transparent 72%),
+    var(--bg);
+}
+.pane-empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  max-width: 380px;
+  padding: 32px 28px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-1);
+  animation: cmd-pop var(--duration-fast) var(--ease-smooth-out);
+}
+.pane-empty-baslik {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  margin-top: 4px;
+}
+.pane-empty-alt {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.pane-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  margin-top: 10px;
+}
+.pane-shortcuts > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+.pane-shortcuts kbd {
+  min-width: 22px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.reader {
+  animation: reader-in var(--duration-fast) var(--ease-smooth-out);
+}
+@keyframes reader-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+.reader-bar {
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(12px);
+  padding: 10px 18px;
+}
+.reader-head {
+  padding: 20px 24px 16px;
+}
+.reader-head h2 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.028em;
+  line-height: 1.25;
+}
+.ek {
+  transition: border-color var(--duration-quick) var(--ease-smooth-out),
+    background var(--duration-quick) var(--ease-smooth-out),
+    transform var(--duration-quick) var(--ease-smooth-out);
+}
+.ek:hover {
+  background: var(--surface-hi);
+  transform: translateY(-1px);
+}
+
+/* ── Ayarlar modalı & Yazma penceresi cilası ── */
+.modal-wrap {
+  background: rgba(8, 10, 18, 0.56);
+  backdrop-filter: blur(8px);
+}
+.modal {
+  max-width: 680px;
+  border-radius: 18px;
+  border: 1px solid var(--line-hi);
+  animation: cmd-pop var(--duration-fast) var(--ease-smooth-out);
+}
+.modal-bar {
+  padding: 16px 16px 16px 24px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.compose-wrap {
+  width: min(620px, calc(100vw - 44px));
+}
+.compose {
+  border-radius: 16px 16px 0 0;
+  border: 1px solid var(--line-hi);
+  border-bottom: 0;
+}
+
+@media (max-width: 760px) {
+  .list-head {
+    padding: 10px 14px 4px;
+  }
+  .list-cmd-pill {
+    display: none;
+  }
+  .row:hover .row-date,
+  .row:focus-within .row-date {
+    display: inline;
+  }
+  .row:hover .row-quick,
+  .row:focus-within .row-quick {
+    display: none;
+  }
+}

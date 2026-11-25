@@ -658,6 +658,48 @@ export function Mail({
     }
   }, [mailbox, secili, tumuSecili, toplam, tasiniyor, secimiBirak, yukle]);
 
+  /** Satır üstü hover hızlı eylemleri: yıldızla, okundu/okunmadı, çöp. */
+  async function hizliBayrak(
+    e: React.MouseEvent,
+    m: MessageSummary,
+    bayrak: "seen" | "flagged",
+  ) {
+    e.stopPropagation();
+    const yeniDeger = !m[bayrak];
+    setMessages((list) =>
+      list.map((x) => (x.uid === m.uid ? { ...x, [bayrak]: yeniDeger } : x)),
+    );
+    setSonuclar((list) =>
+      list ? list.map((x) => (x.uid === m.uid ? { ...x, [bayrak]: yeniDeger } : x)) : list,
+    );
+    try {
+      await api.setFlag(m.uid, bayrak, yeniDeger, mailbox);
+      if (bayrak === "seen") sayaclariTazele();
+    } catch {
+      // Hata olursa geri al
+      setMessages((list) =>
+        list.map((x) => (x.uid === m.uid ? { ...x, [bayrak]: m[bayrak] } : x)),
+      );
+    }
+  }
+
+  async function hizliSil(e: React.MouseEvent, m: MessageSummary) {
+    e.stopPropagation();
+    setMessages((list) => list.filter((x) => x.uid !== m.uid));
+    setSonuclar((list) => (list ? list.filter((x) => x.uid !== m.uid) : list));
+    if (selected === m.uid) setSelected(null);
+    try {
+      await api.topluTasi(mailbox, "cop", [m.uid], false);
+      setBilgi("Mesaj Çöp'e taşındı.");
+      sayaclariTazele();
+    } catch (err) {
+      setBilgi(`Taşınamadı: ${(err as Error).message}`);
+      yukle();
+    }
+  }
+
+  const aktifKutu = boxes.find((b) => b.path === mailbox);
+
   /**
    * Avatarları listeden AYRI çekiyoruz.
    *
@@ -854,6 +896,26 @@ export function Mail({
 
       {/* ── Orta: mesaj listesi ── */}
       <section className="list">
+        <div className="list-head">
+          <div className="list-head-left">
+            <h1 className="list-title">{aktifKutu ? kutuAdi(aktifKutu) : mailbox}</h1>
+            <span className="list-meta">
+              {(toplam || gosterilen.length) > 0
+                ? `${(toplam || gosterilen.length).toLocaleString("tr-TR")} mesaj`
+                : "Boş"}
+              {(aktifKutu?.unseen ?? 0) > 0 && ` · ${aktifKutu!.unseen} okunmamış`}
+            </span>
+          </div>
+          <button
+            className="list-cmd-pill"
+            onClick={() => setKomutAcik(true)}
+            title="Komut paleti (⌘K / Ctrl+K)"
+          >
+            <span>Komutlar</span>
+            <kbd>⌘K</kbd>
+          </button>
+        </div>
+
         <div className="list-bar">
           {/* Yalnızca telefonda görünür (CSS); çekmeceyi açar */}
           <button
@@ -956,13 +1018,6 @@ export function Mail({
               {ad}
             </button>
           ))}
-          <button
-            className="filtre-cmd"
-            onClick={() => setKomutAcik(true)}
-            title="Komut paleti (⌘K / Ctrl+K)"
-          >
-            ⌘K
-          </button>
         </div>
 
         {/* İnce yükleme çizgisi — liste doluyken metin yerine bu */}
@@ -1072,15 +1127,24 @@ export function Mail({
 
         <div className="rows">
           {gosterilen.map((m, i) => (
-            <button
+            <div
               key={m.uid}
-              // Giriş animasyonu sırayla — ilk 16 satırdan sonrası beklemesin
-              style={{ "--i": Math.min(i, 16) } as CSSProperties}
+              role="button"
+              tabIndex={0}
+              // Giriş animasyonu sırayla — ilk 10 satırdan sonrası beklemesin
+              style={{ "--i": Math.min(i, 10) } as CSSProperties}
               className={
                 `row ${m.seen ? "" : "is-unread"} ` +
                 `${selected === m.uid ? "is-selected" : ""} ` +
                 `${secili.has(m.uid) || tumuSecili ? "is-secili" : ""}`
               }
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  if (secimKipi) secimiCevir(m.uid);
+                  else setSelected(m.uid);
+                }
+              }}
               onPointerDown={() => basmaBasla(m.uid)}
               onPointerUp={basmaBitir}
               onPointerLeave={basmaBitir}
@@ -1115,6 +1179,7 @@ export function Mail({
               />
               <div className="row-body">
                 <div className="row-top">
+                  {!m.seen && <span className="row-unread-dot" aria-hidden="true" />}
                   <span className="row-from">
                     {m.from?.name || m.from?.address || "(bilinmiyor)"}
                   </span>
@@ -1145,6 +1210,51 @@ export function Mail({
                     </svg>
                   )}
                   <time className="row-date">{tarih(m.date)}</time>
+                  <span className="row-quick" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      className={`rq-btn ${m.flagged ? "is-starred" : ""}`}
+                      title={m.flagged ? "Yıldızı kaldır" : "Yıldızla"}
+                      aria-label={m.flagged ? "Yıldızı kaldır" : "Yıldızla"}
+                      onClick={(e) => void hizliBayrak(e, m, "flagged")}
+                    >
+                      {m.flagged ? "★" : "☆"}
+                    </button>
+                    <button
+                      type="button"
+                      className="rq-btn"
+                      title={m.seen ? "Okunmadı işaretle" : "Okundu işaretle"}
+                      aria-label={m.seen ? "Okunmadı işaretle" : "Okundu işaretle"}
+                      onClick={(e) => void hizliBayrak(e, m, "seen")}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        {m.seen ? (
+                          <>
+                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                            <path d="m22 7-10 6L2 7" />
+                          </>
+                        ) : (
+                          <>
+                            <path d="M22 10.5V18a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h12.5" />
+                            <path d="m22 7-10 6L2 7" />
+                          </>
+                        )}
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className="rq-btn is-danger"
+                      title="Çöp'e taşı"
+                      aria-label="Çöp'e taşı"
+                      onClick={(e) => void hizliSil(e, m)}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
+                  </span>
                 </div>
                 <div className="row-subject">
                   {m.subject}
@@ -1152,7 +1262,7 @@ export function Mail({
                 </div>
                 <div className="row-preview">{m.preview}</div>
               </div>
-            </button>
+            </div>
           ))}
 
         {/*
@@ -1193,13 +1303,21 @@ export function Mail({
       <section className={`pane ${tamEkran ? "is-tam-ekran" : ""}`}>
         {selected === null ? (
           <div className="pane-empty">
-            <div className="pane-empty-logo">
-              <Logo size={64} />
+            <div className="pane-empty-card">
+              <div className="pane-empty-logo">
+                <Logo size={56} />
+              </div>
+              <p className="pane-empty-baslik">Okumak için bir mesaj seç</p>
+              <p className="pane-empty-alt">
+                Hızlı hareket etmek için klavye kısayollarını kullanabilirsin.
+              </p>
+              <div className="pane-shortcuts">
+                <div><kbd>⌘K</kbd><span>Komut paleti</span></div>
+                <div><kbd>C</kbd><span>Yeni mesaj</span></div>
+                <div><kbd>J</kbd><kbd>K</kbd><span>Mesaj gez</span></div>
+                <div><kbd>/</kbd><span>Postada ara</span></div>
+              </div>
             </div>
-            <p className="pane-empty-baslik">Okumak için bir mesaj seç.</p>
-            <p className="hint">
-              <kbd>⌘K</kbd> komutlar · <kbd>c</kbd> yaz · <kbd>j</kbd>/<kbd>k</kbd> gez · <kbd>/</kbd> ara
-            </p>
           </div>
         ) : (
           <MessageView
