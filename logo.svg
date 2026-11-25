@@ -1,1 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="aktas-mail"><defs><linearGradient id="g-am" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b9bff"/><stop offset="1" stop-color="#1558d6"/></linearGradient></defs><rect x="2" y="2" width="60" height="60" rx="15" fill="url(#g-am)"/><g stroke-width="5.9" stroke-linecap="round" fill="none"><path d="M32 17 L45.3 45" stroke="#fff"/><path d="M32 17 L18.7 45" stroke="#fff"/><path d="M24.5 36.3 H39.5" stroke="#c2e7ff"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="bg" x1="4" y1="2" x2="44" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#161d38"/>
+      <stop offset="1" stop-color="#0a0d17"/>
+    </linearGradient>
+    <linearGradient id="gl" x1="12" y1="12" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#a5b4fc"/>
+      <stop offset="0.52" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="44" height="44" rx="11.5" fill="url(#bg)"/>
+  <rect x="2.75" y="2.75" width="42.5" height="42.5" rx="10.75" fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="1.5"/>
+  <path d="M12.5 33.5 L24 13.5 L35.5 33.5" fill="none" stroke="#f8fafc" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M16.2 26.8 L24 31.6 L31.8 26.8" fill="none" stroke="url(#gl)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

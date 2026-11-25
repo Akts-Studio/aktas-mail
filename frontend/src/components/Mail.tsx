@@ -1,12 +1,14 @@
-import { useEffect, useState, useCallback, useRef, type CSSProperties } from "react";
-import { api, type Me, type Mailbox, type MessageSummary, type MessageDetail, type SenderAvatar, type Bakim } from "../lib/api.js";
+import { useEffect, useState, useCallback, useRef, useMemo, type CSSProperties } from "react";
+import { api, type Me, type Mailbox, type MessageSummary, type MessageDetail, type SenderAvatar, type Bakim, type StorageInfo } from "../lib/api.js";
 import { Avatar } from "./Avatar.js";
 import { PROFIL_DEGISTI } from "./ProfilePhoto.js";
-import { ayarlariUygula } from "../lib/theme.js";
+import { ayarlariUygula, temayiDegistir } from "../lib/theme.js";
 import { MessageView } from "./MessageView.js";
-import { Compose, type Draft } from "./Compose.js";
+import { Compose, type Draft, type QueuedMail } from "./Compose.js";
 import { Logo } from "./Logo.js";
 import { Settings } from "./Settings.js";
+import { ThemeToggle } from "./ThemeToggle.js";
+import { CommandPalette, type KomutOgesi } from "./CommandPalette.js";
 
 /**
  * Klasör simgeleri — tek çizgi kalınlığında SVG. Önceden ▤ ➤ ✎ gibi
@@ -147,6 +149,65 @@ export function Mail({
   const [canliSurum, setCanliSurum] = useState(0);
   /** Kısa bilgi mesajı (taşıma vb.) — birkaç saniye görünüp kayboluyor. */
   const [bilgi, setBilgi] = useState<string | null>(null);
+  /** Hızlı liste filtresi (Spacemail tarzı çipler) */
+  const [filtre, setFiltre] = useState<"tumu" | "okunmamis" | "yildizli" | "ekli">("tumu");
+  /** ⌘K / Ctrl+K komut paleti */
+  const [komutAcik, setKomutAcik] = useState(false);
+  /** Sol kenar çubuğu depolama (quota) göstergesi */
+  const [depolama, setDepolama] = useState<StorageInfo | null>(null);
+  /** Geri Al (Undo Send) kuyruğu: 5 sn içinde iptal edilebilir */
+  const [bekleyenGonderi, setBekleyenGonderi] = useState<QueuedMail | null>(null);
+  const gonderiZamanRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    api.storage().then(setDepolama).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (gonderiZamanRef.current) clearTimeout(gonderiZamanRef.current);
+    };
+  }, []);
+
+  function gonderiyiKuyrugaAl(mail: QueuedMail) {
+    if (gonderiZamanRef.current) clearTimeout(gonderiZamanRef.current);
+    setDraft(null);
+    setBekleyenGonderi(mail);
+    gonderiZamanRef.current = setTimeout(() => {
+      gonderiZamanRef.current = null;
+      setBekleyenGonderi(null);
+      void api
+        .send({
+          to: mail.to,
+          ...(mail.cc?.length ? { cc: mail.cc } : {}),
+          subject: mail.subject,
+          text: mail.text,
+          ...(mail.inReplyTo ? { inReplyTo: mail.inReplyTo } : {}),
+          ...(mail.references?.length ? { references: mail.references } : {}),
+        })
+        .then(() => {
+          setBilgi("Mesaj gönderildi.");
+          yukle();
+        })
+        .catch((err: Error) => {
+          setBilgi(`Gönderilemedi: ${err.message}`);
+          setDraft(mail.draft);
+        });
+    }, 5000);
+  }
+
+  function gonderiyiGeriAl() {
+    if (gonderiZamanRef.current) {
+      clearTimeout(gonderiZamanRef.current);
+      gonderiZamanRef.current = null;
+    }
+    if (bekleyenGonderi) {
+      const taslak = bekleyenGonderi.draft;
+      setBekleyenGonderi(null);
+      setDraft(taslak);
+      setBilgi("Gönderim iptal edildi — taslak geri açıldı.");
+    }
+  }
 
   useEffect(() => {
     if (!bilgi) return;
@@ -336,9 +397,23 @@ export function Mail({
     };
   }, [query, mailbox]);
 
-  // Gmail kısayolları
+  const hamListe = sonuclar ?? messages;
+  const gosterilen = useMemo(() => {
+    if (filtre === "okunmamis") return hamListe.filter((m) => !m.seen);
+    if (filtre === "yildizli") return hamListe.filter((m) => m.flagged);
+    if (filtre === "ekli") return hamListe.filter((m) => m.hasAttachments);
+    return hamListe;
+  }, [hamListe, filtre]);
+
+  // Kısayollar: ⌘K komut paleti, c yaz, / ara, r yenile, j/k mesaj gez, Esc kapat
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setKomutAcik((v) => !v);
+        return;
+      }
+      if (komutAcik) return;
       const t = e.target as HTMLElement;
       if (t.tagName === "INPUT" || t.tagName === "TEXTAREA") return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -347,7 +422,6 @@ export function Mail({
         e.preventDefault();
         setDraft({ to: "", subject: "", text: "" });
       } else if (e.key === "Escape") {
-        // Çekmece açıksa önce onu kapat — Esc en üstteki katmanı kapatmalı
         if (menuAcik) setMenuAcik(false);
         else if (tamEkran) setTamEkran(false);
         else setSelected(null);
@@ -359,11 +433,43 @@ export function Mail({
       } else if (e.key === "/") {
         e.preventDefault();
         document.getElementById("ara")?.focus();
+      } else if ((e.key === "j" || e.key === "k") && gosterilen.length > 0) {
+        e.preventDefault();
+        const idx = gosterilen.findIndex((m) => m.uid === selected);
+        const next =
+          e.key === "j"
+            ? idx < 0 ? 0 : Math.min(idx + 1, gosterilen.length - 1)
+            : idx <= 0 ? 0 : idx - 1;
+        const hedef = gosterilen[next];
+        if (hedef) setSelected(hedef.uid);
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [yukle, loading, menuAcik, tamEkran]);
+  }, [yukle, loading, menuAcik, tamEkran, komutAcik, gosterilen, selected]);
+
+  const komutlar = useMemo<KomutOgesi[]>(() => {
+    const eylemler: KomutOgesi[] = [
+      { id: "yeni", etiket: "Yeni mesaj yaz", grup: "Eylem", kisayol: "C", calistir: () => setDraft({ to: "", subject: "", text: "" }) },
+      { id: "yenile", etiket: "Posta kutusunu yenile", grup: "Eylem", kisayol: "R", calistir: () => yukle() },
+      { id: "tema", etiket: "Açık / Koyu temayı değiştir", grup: "Görünüm", calistir: () => { temayiDegistir(); } },
+      { id: "ayarlar", etiket: "Ayarları aç (IMAP/SMTP, İmza, Passkey)", grup: "Ayarlar", calistir: () => setAyarlar(true) },
+      { id: "f-tumu", etiket: "Filtre: Tüm mesajlar", grup: "Filtre", calistir: () => setFiltre("tumu") },
+      { id: "f-okunmamis", etiket: "Filtre: Yalnızca okunmamışlar", grup: "Filtre", calistir: () => setFiltre("okunmamis") },
+      { id: "f-yildizli", etiket: "Filtre: Yalnızca yıldızlılar", grup: "Filtre", calistir: () => setFiltre("yildizli") },
+      { id: "f-ekli", etiket: "Filtre: Yalnızca ekli mesajlar", grup: "Filtre", calistir: () => setFiltre("ekli") },
+    ];
+    const klasorKomutlari: KomutOgesi[] = boxes.map((b) => ({
+      id: `box-${b.path}`,
+      etiket: `${kutuAdi(b)} klasörüne git`,
+      grup: "Klasör",
+      calistir: () => {
+        setMailbox(b.path);
+        setFiltre("tumu");
+      },
+    }));
+    return [...eylemler, ...klasorKomutlari];
+  }, [boxes, yukle]);
 
   /** Etkin hesaptan çıkar; tarayıcıda başka hesap açıksa ona geçer. */
   async function cikis(tumu = false) {
@@ -420,7 +526,6 @@ export function Mail({
     });
   }
 
-  const gosterilen = sonuclar ?? messages;
   const secimKipi = secili.size > 0 || tumuSecili;
 
   /** Spam klasörünün yolu — "boşalt" düğmesi yalnızca orada çıksın. */
@@ -612,8 +717,29 @@ export function Mail({
       {/* ── Sol: klasörler ── */}
       <aside className={`sidebar ${menuAcik ? "is-open" : ""}`}>
         <div className="brand">
-          <Logo size={30} />
-          <span>Aktaş Mail</span>
+          <div className="brand-id">
+            <Logo size={28} />
+            <span>Aktaş Mail</span>
+          </div>
+          <ThemeToggle className="brand-theme" />
+        </div>
+
+        <div className="sidebar-compose-wrap">
+          <button
+            className="sidebar-compose"
+            onClick={() => {
+              setMenuAcik(false);
+              setDraft({ to: "", subject: "", text: "" });
+            }}
+            title="Yeni mesaj (c)"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                 strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+            </svg>
+            Yeni mesaj
+          </button>
         </div>
 
         <nav className="folders">
@@ -642,6 +768,29 @@ export function Mail({
         </nav>
 
         <div className="sidebar-foot">
+          {depolama && depolama.quotaBytes > 0 && (
+            <div className="sidebar-kota" title="Posta kutusu depolama kullanımı">
+              <div className="sidebar-kota-ust">
+                <span>Depolama</span>
+                <span>
+                  {depolama.usedBytes >= 1024 * 1024 * 1024
+                    ? `${(depolama.usedBytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+                    : `${Math.max(0.1, depolama.usedBytes / (1024 * 1024)).toFixed(1)} MB`}
+                  {" / "}
+                  {(depolama.quotaBytes / (1024 * 1024 * 1024)).toFixed(0)} GB
+                </span>
+              </div>
+              <div className="sidebar-kota-ray">
+                <div
+                  className="sidebar-kota-dolgu"
+                  style={{
+                    width: `${Math.min(100, Math.max(2, (depolama.usedBytes / depolama.quotaBytes) * 100))}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="who">
             {kendiAvatar ? (
               <img className="avatar-sm avatar-sm-img" src={kendiAvatar} alt="" />
@@ -785,6 +934,35 @@ export function Mail({
               </svg>
             </button>
           )}
+        </div>
+
+        {/* Hızlı filtre çipleri + ⌘K komut paleti kısayolu */}
+        <div className="filtre-bar" role="tablist" aria-label="Mesaj filtresi">
+          {(
+            [
+              ["tumu", "Tümü"],
+              ["okunmamis", "Okunmamış"],
+              ["yildizli", "Yıldızlı"],
+              ["ekli", "Ekli"],
+            ] as const
+          ).map(([id, ad]) => (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={filtre === id}
+              className={`filtre-cip ${filtre === id ? "is-active" : ""}`}
+              onClick={() => setFiltre(id)}
+            >
+              {ad}
+            </button>
+          ))}
+          <button
+            className="filtre-cmd"
+            onClick={() => setKomutAcik(true)}
+            title="Komut paleti (⌘K / Ctrl+K)"
+          >
+            ⌘K
+          </button>
         </div>
 
         {/* İnce yükleme çizgisi — liste doluyken metin yerine bu */}
@@ -1020,7 +1198,7 @@ export function Mail({
             </div>
             <p className="pane-empty-baslik">Okumak için bir mesaj seç.</p>
             <p className="hint">
-              <kbd>c</kbd> yaz · <kbd>r</kbd> yenile · <kbd>/</kbd> ara · <kbd>Esc</kbd> kapat
+              <kbd>⌘K</kbd> komutlar · <kbd>c</kbd> yaz · <kbd>j</kbd>/<kbd>k</kbd> gez · <kbd>/</kbd> ara
             </p>
           </div>
         ) : (
@@ -1073,12 +1251,31 @@ export function Mail({
         Yaz
       </button>
 
+      {/* Geri Al (Undo Send) — 5 saniye içinde iptal edilebilir */}
+      {bekleyenGonderi && (
+        <div className="undo-toast" role="status">
+          <div className="undo-toast-row">
+            <span>
+              <b>{bekleyenGonderi.to[0]}</b> adresine gönderiliyor…
+            </span>
+            <button type="button" className="undo-btn" onClick={gonderiyiGeriAl}>
+              Geri Al
+            </button>
+          </div>
+          <div className="undo-bar" aria-hidden="true" />
+        </div>
+      )}
+
       {/* Kısa bilgi — alttan kayan bildirim; key ile her mesajda yeniden oynar */}
-      {bilgi && (
+      {bilgi && !bekleyenGonderi && (
         <div key={bilgi} className="toast" role="status">
           <span className="toast-ikon" aria-hidden="true">✓</span>
           {bilgi}
         </div>
+      )}
+
+      {komutAcik && (
+        <CommandPalette komutlar={komutlar} onClose={() => setKomutAcik(false)} />
       )}
 
       {ayarlar && (
@@ -1096,6 +1293,7 @@ export function Mail({
           draft={draft}
           from={me.user.email}
           onClose={() => setDraft(null)}
+          onQueueSend={gonderiyiKuyrugaAl}
           onSent={() => {
             setDraft(null);
             yukle();

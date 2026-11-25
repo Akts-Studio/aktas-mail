@@ -11,16 +11,28 @@ export interface Draft {
   references?: string[];
 }
 
+export interface QueuedMail {
+  to: string[];
+  cc?: string[];
+  subject: string;
+  text: string;
+  inReplyTo?: string;
+  references?: string[];
+  draft: Draft;
+}
+
 export function Compose({
   draft,
   from,
   onClose,
   onSent,
+  onQueueSend,
 }: {
   draft: Draft;
   from: string;
   onClose: () => void;
   onSent: () => void;
+  onQueueSend?: (mail: QueuedMail) => void;
 }) {
   const [to, setTo] = useState(draft.to);
   const [cc, setCc] = useState("");
@@ -66,10 +78,23 @@ export function Compose({
       return;
     }
 
+    const cclar = adresler(cc);
+    if (onQueueSend) {
+      onQueueSend({
+        to: alicilar,
+        ...(cclar.length ? { cc: cclar } : {}),
+        subject,
+        text,
+        ...(draft.inReplyTo ? { inReplyTo: draft.inReplyTo } : {}),
+        ...(draft.references?.length ? { references: draft.references } : {}),
+        draft: { ...draft, to, subject, text },
+      });
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
-      const cclar = adresler(cc);
       const res = await api.send({
         to: alicilar,
         ...(cclar.length ? { cc: cclar } : {}),

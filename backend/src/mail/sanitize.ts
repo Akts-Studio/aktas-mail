@@ -19,6 +19,38 @@ export interface SanitizeResult {
   blockedImages: number;
   /** Dışarıya giden link sayısı — phishing uyarısı için */
   externalLinks: number;
+  /** Linklerden sıyrılan takip parametresi sayısı (utm_*, fbclid, vb.) */
+  cleanedTrackers: number;
+}
+
+/** Pazarlama ve tıklama takibi için kullanılan bilinen sorgu parametreleri */
+const TAKIP_PARAMETRELERI = new Set([
+  "fbclid", "gclid", "dclid", "gbraid", "wbraid", "yclid", "msclkid",
+  "mc_cid", "mc_eid", "_hsenc", "_hsmi", "mkt_tok", "vero_id", "vero_conv",
+  "igshid", "ref_src", "trk", "trkemail", "lipi", "wickedid", "oly_enc_id",
+  "oly_anon_id", "rb_clickid", "s_cid", "twclid",
+]);
+
+function izleyicileriTemizle(href: string): { url: string; cleaned: number } {
+  if (!/^https?:\/\//i.test(href)) return { url: href, cleaned: 0 };
+  try {
+    const parsed = new URL(href);
+    let cleaned = 0;
+    const silinecek: string[] = [];
+    for (const key of parsed.searchParams.keys()) {
+      const k = key.toLowerCase();
+      if (k.startsWith("utm_") || TAKIP_PARAMETRELERI.has(k)) {
+        silinecek.push(key);
+      }
+    }
+    for (const key of silinecek) {
+      parsed.searchParams.delete(key);
+      cleaned += 1;
+    }
+    return { url: cleaned > 0 ? parsed.toString() : href, cleaned };
+  } catch {
+    return { url: href, cleaned: 0 };
+  }
 }
 
 /**
@@ -141,6 +173,7 @@ export function sanitizeEmailHtml(
 
   let blockedImages = 0;
   let externalLinks = 0;
+  let cleanedTrackers = 0;
 
   const html = sanitizeHtml(dirty, {
     allowedTags: [
@@ -183,12 +216,15 @@ export function sanitizeEmailHtml(
       "*": (tagName, attribs) => ({ tagName, attribs: stiliCevir(attribs) }),
 
       a: (tagName, attribs) => {
-        const href = attribs["href"] ?? "";
+        const rawHref = attribs["href"] ?? "";
+        const { url: href, cleaned } = izleyicileriTemizle(rawHref);
+        if (cleaned > 0) cleanedTrackers += cleaned;
         if (/^https?:\/\//i.test(href)) externalLinks += 1;
         return {
           tagName: "a",
           attribs: {
             ...stiliCevir(attribs),
+            ...(href ? { href } : {}),
             // noopener: açılan sayfa window.opener ile bize erişemesin
             rel: "noopener noreferrer nofollow",
             target: "_blank",
@@ -230,6 +266,7 @@ export function sanitizeEmailHtml(
     html: html.replace(/(<style[^>]*>)([\s\S]*?)(<\/style>)/gi, (_t, a, css, b) => a + stilBlogunuTemizle(css) + b),
     blockedImages,
     externalLinks,
+    cleanedTrackers,
   };
 }
 

@@ -46,6 +46,7 @@ export interface MessageDetail extends MessageSummary {
   html: string;
   blockedImages: number;
   externalLinks: number;
+  cleanedTrackers: number;
   attachments: Attachment[];
   /** Gövdeye gömülü (cid:) görsel sayısı — uzak görselden farklı, takip riski yok */
   inlineImages: number;
@@ -315,6 +316,7 @@ export async function getMessage(
             html: plainTextToHtml(parsed.text ?? ""),
             blockedImages: 0,
             externalLinks: 0,
+            cleanedTrackers: 0,
           };
 
       const env_ = msg.envelope;
@@ -338,6 +340,7 @@ export async function getMessage(
         html: cleaned.html,
         blockedImages: cleaned.blockedImages,
         externalLinks: cleaned.externalLinks,
+        cleanedTrackers: cleaned.cleanedTrackers,
         inlineImages,
         senderVerified,
         spam: govdeSkoru,

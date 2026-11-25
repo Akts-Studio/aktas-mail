@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { z } from "zod";
+
+const execFileAsync = promisify(execFile);
 import { unpackSessionCookie } from "../lib/crypto.js";
 import { loadSession } from "../auth/session.js";
 import {
@@ -514,5 +518,52 @@ export async function mailRoutes(app: FastifyInstance): Promise<void> {
       ip: req.ip,
     });
     return reply.send({ ...sonuc, hedef: hedefYol });
+  });
+
+  /**
+   * Kutu depolama kullanımı ve harici istemci (IMAP/SMTP) bağlantı kartı.
+   * Maildir boyutunu `du -sb` ile güvenli biçimde okur; okunamazsa usedBytes=0.
+   */
+  app.get("/api/storage", async (req, reply) => {
+    const session = await requireSession(req, reply);
+    if (!session) return;
+
+    const [local, domain] = session.email.toLowerCase().split("@");
+    const quotaMb = Number(process.env["MAIL_QUOTA_MB"] ?? "5120") || 5120;
+    const quotaBytes = quotaMb * 1024 * 1024;
+    let usedBytes = 0;
+
+    if (
+      local &&
+      domain &&
+      /^[a-z0-9._-]+$/.test(local) &&
+      /^[a-z0-9.-]+$/.test(domain)
+    ) {
+      const maildirRoot = process.env["MAILDIR_ROOT"] ?? "/var/mail/vhosts";
+      try {
+        const { stdout } = await execFileAsync("du", ["-sb", `${maildirRoot}/${domain}/${local}`], {
+          timeout: 3000,
+        });
+        const parsed = Number.parseInt(stdout.trim().split(/\s+/)[0] ?? "0", 10);
+        if (Number.isFinite(parsed) && parsed >= 0) usedBytes = parsed;
+      } catch {
+        // Maildir başka makinede ya da erişilemiyorsa 0 dön
+      }
+    }
+
+    const mailHost = process.env["PUBLIC_MAIL_HOST"] ?? `mail.${domain ?? "akts.tr"}`;
+    return reply.send({
+      usedBytes,
+      quotaBytes,
+      client: {
+        email: session.email,
+        imapHost: mailHost,
+        imapPort: 993,
+        imapSecurity: "SSL/TLS",
+        smtpHost: mailHost,
+        smtpPort: 587,
+        smtpSecurity: "STARTTLS",
+      },
+    });
   });
 }

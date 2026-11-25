@@ -1,97 +1,100 @@
 /*
- * Aktaş Mail teması — Gmail paleti.
+ * Aktaş Mail teması — Spacemail esintili minimalist kurumsal palet.
  *
- * Renkler Google'ın Material tonlarından: mavi #1a73e8 (koyu temada
- * #8ab4f8), seçili öğede açık mavi dolgu, yıldız için Google sarısı,
- * hata için Google kırmızısı. Varsayılan açık tema — Gmail öyle.
+ * Açık tema: saf beyaz okuma alanı, soğuk taş-gri yan paneller, ince
+ * hairline ayraçlar ve elektrik indigo vurgu.
+ * Koyu tema: derin uzay-antrasit/lacivert katmanlar (#0c0e14 → #11141d),
+ * yüksek kontrastlı metin ve yumuşak indigo seçimler.
  */
 
 :root {
-  /* Google mavisi */
-  --accent: #1a73e8;
-  --accent-hi: #1557b0;
-  --accent-dim: #d3e3fd; /* seçili klasör dolgusu */
-  --accent-on: #001d35; /* açık mavi üstündeki yazı */
+  /* Elektrik indigo vurgu (Spacemail tarzı) */
+  --accent: #4f46e5;
+  --accent-hi: #4338ca;
+  --accent-dim: rgba(79, 70, 229, 0.11);
+  --accent-on: #312e81;
+  --accent-ring: rgba(79, 70, 229, 0.18);
 
   --bg: #ffffff;
-  --surface: #f6f8fc; /* kenar çubuğu */
-  --surface-hi: #eaf1fb; /* hover */
-  --surface-active: #d3e3fd; /* seçili */
-  --read-bg: #f2f6fc; /* okunmuş satır */
+  --surface: #f6f7fb; /* kenar çubuğu */
+  --surface-hi: #edeff6; /* hover */
+  --surface-active: rgba(79, 70, 229, 0.11); /* seçili */
+  --read-bg: #fafbfd; /* okunmuş satır */
 
-  /* Deneysel spam rozeti — uyarı rengi, hata rengi değil:
-     model yanılıyor, kesin bir iddia gibi görünmemeli */
-  --spam-fg: #b3730f;
-  --spam-bg: rgba(208, 138, 44, 0.1);
-  --spam-line: #e0b070;
+  /* Deneysel spam rozeti */
+  --spam-fg: #b45309;
+  --spam-bg: rgba(217, 119, 6, 0.1);
+  --spam-line: rgba(217, 119, 6, 0.35);
 
-  /* Doğrulanmış gönderen (BIMI+VMC) */
-  --tik-bg: rgba(26, 115, 232, 0.08);
-  --tik-line: #a8c7fa;
+  /* Doğrulanmış gönderen (BIMI+DMARC) */
+  --tik-bg: rgba(79, 70, 229, 0.08);
+  --tik-line: rgba(79, 70, 229, 0.32);
 
-  --fg: #1f1f1f;
-  --muted: #5f6368;
-  --dim: #80868b;
+  /* Kontrast ölçülü metin tonları (>= 4.5:1) */
+  --fg: #0f172a;
+  --muted: #475569;
+  --dim: #64748b;
 
-  --line: #e0e3e7;
-  --line-hi: #c4c7c5;
+  --line: #e5e7f0;
+  --line-hi: #cbd5e1;
 
-  --danger: #d93025; /* Google kırmızısı */
-  --warn: #f9ab00; /* yıldız sarısı */
+  --danger: #dc2626;
+  --warn: #eab308;
 
-  /* Yazma penceresi başlığı: Gmail'de her iki temada da koyu */
-  --compose-bar-bg: #404040;
-  --compose-bar-fg: #ffffff;
+  /* Yazma penceresi başlığı */
+  --compose-bar-bg: #11141d;
+  --compose-bar-fg: #f8fafc;
 
-  --shadow-1: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
-  --shadow-2: 0 2px 6px 2px rgba(60, 64, 67, 0.15), 0 1px 2px rgba(60, 64, 67, 0.3);
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.05);
+  --shadow-2: 0 10px 28px -6px rgba(15, 23, 42, 0.14), 0 4px 10px -4px rgba(15, 23, 42, 0.08);
 
-  /* Gmail Google Sans kullanıyor; sistemde yoksa Roboto ve sistem yazı tipi */
-  --font: "Google Sans", "Product Sans", Roboto, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  --mono: ui-monospace, "Roboto Mono", SFMono-Regular, Menlo, monospace;
+  /* Sistem + Inter tipografi yığını (akts-design uyumlu) */
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Roboto Mono", SFMono-Regular, Menlo, monospace;
 
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
-  --sidebar-w: 256px;
-  --list-w: 400px;
+  --sidebar-w: 248px;
+  --list-w: 392px;
 }
 
-/* Gmail koyu teması */
+/* Spacemail koyu teması — derin uzay-antrasit */
 :root[data-theme="dark"] {
-  --accent: #8ab4f8;
-  --accent-hi: #aecbfa;
-  --accent-dim: #004a77;
-  --accent-on: #c2e7ff;
+  --accent: #6366f1;
+  --accent-hi: #818cf8;
+  --accent-dim: rgba(99, 102, 241, 0.18);
+  --accent-on: #e0e7ff;
+  --accent-ring: rgba(99, 102, 241, 0.28);
 
-  --bg: #1f1f1f;
-  --surface: #1e1f20;
-  --surface-hi: #2d2e30;
-  --surface-active: #004a77;
-  --read-bg: #1a1a1a;
+  --bg: #0c0e14;
+  --surface: #11141d;
+  --surface-hi: #191e2c;
+  --surface-active: rgba(99, 102, 241, 0.18);
+  --read-bg: #0e1118;
 
-  --spam-fg: #e0a94f;
-  --spam-bg: rgba(224, 169, 79, 0.12);
-  --spam-line: #7a5a25;
+  --spam-fg: #fbbf24;
+  --spam-bg: rgba(245, 158, 11, 0.12);
+  --spam-line: rgba(245, 158, 11, 0.35);
 
-  --tik-bg: rgba(138, 180, 248, 0.12);
-  --tik-line: #3c5a80;
+  --tik-bg: rgba(99, 102, 241, 0.16);
+  --tik-line: rgba(129, 140, 248, 0.38);
 
-  --fg: #e3e3e3;
-  --muted: #9aa0a6;
-  --dim: #80868b;
+  --fg: #eef1f7;
+  --muted: #9aa4b8;
+  --dim: #7b869c;
 
-  --line: #3c4043;
-  --line-hi: #5f6368;
+  --line: #1e2433;
+  --line-hi: #2d3548;
 
-  --danger: #f28b82;
-  --warn: #fdd663;
+  --danger: #f87171;
+  --warn: #facc15;
 
-  --compose-bar-bg: #2d2e30;
-  --compose-bar-fg: #e3e3e3;
+  --compose-bar-bg: #161b28;
+  --compose-bar-fg: #eef1f7;
 
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.6), 0 1px 3px 1px rgba(0, 0, 0, 0.35);
-  --shadow-2: 0 2px 6px 2px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.6);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 16px 36px -8px rgba(0, 0, 0, 0.65), 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 *,
@@ -102,18 +105,6 @@
   padding: 0;
 }
 
-/*
-  UYGULAMA KABUĞU SABİT — sayfa hiç kaymaz.
-
-  Kaydırılan tek yer mesaj listesi (`.rows`) ve mail gövdesi. Kabuk
-  kayarsa üst çubuk, arama ve klasörler ekrandan çıkıyor; bir mail
-  istemcisinde bunlar hep el altında olmalı.
-
-  `100dvh`: telefon tarayıcılarında `100%`/`100vh` adres çubuğunun
-  kapladığı alanı da sayıyor, o yüzden ekranın altı (çekmecedeki
-  "Ayarlar" gibi) kesiliyordu. `dvh` görünen alanı takip ediyor.
-  Eski tarayıcılar için önce `100%` yazılıyor.
-*/
 html,
 body,
 #root {
@@ -124,7 +115,6 @@ body,
 html,
 body {
   overflow: hidden;
-  /* Kabuğun kenarında lastik gibi esneme olmasın (iOS) */
   overscroll-behavior: none;
 }
 
@@ -134,6 +124,7 @@ body {
   font-family: var(--font);
   font-size: 14px;
   line-height: 1.5;
+  letter-spacing: -0.006em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -163,7 +154,7 @@ button:focus {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 a {
@@ -175,10 +166,10 @@ a {
   color: var(--accent-on);
 }
 
-/* Gmail'in ince, sadece hover'da beliren kaydırma çubuğu */
+/* İnce, sade kaydırma çubuğu */
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--line-hi);
@@ -198,7 +189,6 @@ a {
   * {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
-    /* Sonsuz döngüler (nabız, parıltı) 0.01ms'de dönüp işlemciyi yormasın */
     animation-iteration-count: 1 !important;
   }
 }

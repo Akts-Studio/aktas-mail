@@ -523,6 +523,18 @@ export function MessageView({
         Aynı bilgi zaten avatarın üstündeki mavi tikte ve tikin
         tooltip'inde duruyor — iki kez söylemeye gerek yok.
       */}
+      {(msg.cleanedTrackers ?? 0) > 0 && (
+        <div className="gizlilik-serit" title="Bağlantılardaki utm_*, fbclid vb. izleme parametreleri otomatik sıyrıldı">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+          <span>
+            <b>{msg.cleanedTrackers}</b> izleme parametresi bağlantılardan temizlendi
+          </span>
+        </div>
+      )}
+
       {msg.blockedImages > 0 && !showImages && (
         <div
           className={`banner ${msg.gorselSpamNedeniyle ? "is-supheli" : ""}`}

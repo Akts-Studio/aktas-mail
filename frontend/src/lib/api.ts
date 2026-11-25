@@ -125,6 +125,8 @@ export interface MessageDetail extends MessageSummary {
   html: string;
   blockedImages: number;
   externalLinks: number;
+  /** Linklerden temizlenen izleme parametresi sayısı (utm_*, fbclid…) */
+  cleanedTrackers?: number;
   attachments: Attachment[];
   /** Gövdeye gömülü (cid:) görseller — uzak görselden farklı, takip riski yok */
   inlineImages: number;
@@ -135,6 +137,20 @@ export interface MessageDetail extends MessageSummary {
   references?: string[];
   /** Uzak görseller spam şüphesi (%20 üstü) yüzünden engellendiyse true */
   gorselSpamNedeniyle: boolean;
+}
+
+export interface StorageInfo {
+  usedBytes: number;
+  quotaBytes: number;
+  client: {
+    email: string;
+    imapHost: string;
+    imapPort: number;
+    imapSecurity: string;
+    smtpHost: string;
+    smtpPort: number;
+    smtpSecurity: string;
+  };
 }
 
 export interface Mailbox {
@@ -326,6 +342,8 @@ export const api = {
   // ── Posta ─────────────────────────────────────────────────
 
   mailboxes: () => request<{ mailboxes: Mailbox[] }>("/api/mailboxes"),
+
+  storage: () => request<StorageInfo>("/api/storage"),
 
   /** Klasör başına okunmamış sayısı (IMAP STATUS — kutuyu açmadan) */
   unreadCounts: () => request<{ counts: Record<string, number> }>("/api/unread-counts"),

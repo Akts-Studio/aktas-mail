@@ -8,8 +8,9 @@ import { Appearance } from "./Appearance.js";
 import { SpamEgitim } from "./SpamEgitim.js";
 import { ImzaAyari } from "./ImzaAyari.js";
 import { Engellenenler } from "./Engellenenler.js";
+import { ClientSetup } from "./ClientSetup.js";
 
-type Sekme = "profil" | "imza" | "engel" | "gorunum" | "bildirim" | "spam" | "passkey" | "kullanicilar";
+type Sekme = "profil" | "imza" | "engel" | "gorunum" | "bildirim" | "istemci" | "spam" | "passkey" | "kullanicilar";
 type Adim = "liste" | "parola" | "kaydediliyor";
 
 /**
@@ -152,6 +153,14 @@ export function Settings({
           </button>
           <button
             role="tab"
+            aria-selected={sekme === "istemci"}
+            className={`sekme ${sekme === "istemci" ? "is-active" : ""}`}
+            onClick={() => setSekme("istemci")}
+          >
+            IMAP / SMTP
+          </button>
+          <button
+            role="tab"
             aria-selected={sekme === "passkey"}
             className={`sekme ${sekme === "passkey" ? "is-active" : ""}`}
             onClick={() => setSekme("passkey")}
@@ -196,6 +205,13 @@ export function Settings({
             <>
               <h3>Arka plan teması</h3>
               <Appearance />
+            </>
+          )}
+
+          {sekme === "istemci" && (
+            <>
+              <h3>IMAP / SMTP ve Depolama</h3>
+              <ClientSetup email={email} />
             </>
           )}
 
